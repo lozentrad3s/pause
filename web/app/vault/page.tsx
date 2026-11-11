@@ -64,7 +64,7 @@ function VaultInner() {
     return (
       <main className="wrap app-page">
         <section className="empty-hero">
-          <span className="empty-icon" aria-hidden>⏸</span>
+          <span className="empty-icon" aria-hidden><svg width="22" height="22" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" fill="currentColor" /><rect x="14" y="4" width="4" height="16" rx="1.5" fill="currentColor" /></svg></span>
           <h1>Your money, with a pause button.</h1>
           <p className="lede">Connect a NEAR testnet wallet to open your vault. Payments to people you trust go through instantly. Everything else waits for a quick check.</p>
           <div className="hero-cta">
@@ -109,7 +109,7 @@ function VaultInner() {
           </div>
           {!readOnly && <DepositForm onDeposit={(amt) => act("Deposit", "deposit", {}, toYocto(amt))} busy={busy === "Deposit"} />}
         </div>
-        {!readOnly && <SendForm vault={vault} busy={busy === "Payment sent"} onSend={(receiver, amount, memo) => act("Payment sent", "send", { receiver, amount: toYocto(amount), memo: memo || null })} />}
+        <SendForm vault={vault} readOnly={readOnly} onConnect={signIn} busy={busy === "Payment sent"} onSend={(receiver, amount, memo) => act("Payment sent", "send", { receiver, amount: toYocto(amount), memo: memo || null })} />
       </section>
 
       {toast && <p className="toast" role="status">{toast}</p>}
@@ -168,7 +168,7 @@ function DepositForm({ onDeposit, busy }: { onDeposit: (amt: string) => void; bu
   );
 }
 
-function SendForm({ vault, onSend, busy }: { vault: Vault; onSend: (r: string, a: string, m: string) => void; busy: boolean }) {
+function SendForm({ vault, onSend, busy, readOnly, onConnect }: { vault: Vault; onSend: (r: string, a: string, m: string) => void; busy: boolean; readOnly: boolean; onConnect: () => void }) {
   const [receiver, setReceiver] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
@@ -183,13 +183,13 @@ function SendForm({ vault, onSend, busy }: { vault: Vault; onSend: (r: string, a
     hint = "";
   }
   return (
-    <form className="send-card" onSubmit={(e) => { e.preventDefault(); onSend(receiver.trim(), amount, memo); }}>
+    <form className="send-card" onSubmit={(e) => { e.preventDefault(); if (readOnly) onConnect(); else onSend(receiver.trim(), amount, memo); }}>
       <p className="eyebrow">Send money</p>
-      <label>To<input required placeholder="name.testnet" value={receiver} onChange={(e) => setReceiver(e.target.value.toLowerCase())} /></label>
-      <label>Amount (NEAR)<input required inputMode="decimal" placeholder="0.5" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+      <label>To<input required={!readOnly} placeholder="name.testnet" value={receiver} onChange={(e) => setReceiver(e.target.value.toLowerCase())} /></label>
+      <label>Amount (NEAR)<input required={!readOnly} inputMode="decimal" placeholder="0.5" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
       <label>What is it for? <span className="muted">(optional)</span><input maxLength={140} placeholder="Rent, groceries…" value={memo} onChange={(e) => setMemo(e.target.value)} /></label>
       {hint && <p className="send-hint">{hint}</p>}
-      <button className="btn primary" disabled={busy}>{busy ? "Sending…" : "Send"}</button>
+      <button className="btn primary" disabled={busy}>{readOnly ? "Connect a wallet to send" : busy ? "Sending…" : "Send"}</button>
     </form>
   );
 }
@@ -201,7 +201,7 @@ function Guardians({ vault, readOnly, busy, onAdd }: { vault: Vault; readOnly: b
       <h3>Family guardians</h3>
       <p className="muted small">Told when a payment looks risky. They can stop it, never take it.</p>
       <ul className="tag-list">
-        {vault.guardians.map((x) => <li key={x}>👤 {x}</li>)}
+        {vault.guardians.map((x) => <li key={x}>{x}</li>)}
         {vault.guardians.length === 0 && <li className="muted">No guardians yet</li>}
       </ul>
       {!readOnly && vault.guardians.length < 3 && (
@@ -228,7 +228,7 @@ function Trusted({ vault, readOnly, busy, onPropose, onApply, onCancelChange, on
       <p className="muted small">Small payments to these go straight through.</p>
       <ul className="tag-list">
         {vault.trusted_payees.map((x) => (
-          <li key={x}>✓ {x}{!readOnly && <button className="x" aria-label={`Remove ${x}`} onClick={() => onRemove(x)} disabled={busy}>×</button>}</li>
+          <li key={x}>{x}{!readOnly && <button className="x" aria-label={`Remove ${x}`} onClick={() => onRemove(x)} disabled={busy}>×</button>}</li>
         ))}
         {vault.trusted_payees.length === 0 && <li className="muted">No one yet</li>}
       </ul>

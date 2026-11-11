@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter } from "next/font/google";
+import { Inter, Instrument_Serif, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import "./v2.css";
 import "./app.css";
 import { WalletProvider } from "@/lib/wallet";
 import AppHeader from "@/components/AppHeader";
 
-const display = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-display", weight: ["600", "700", "800"] });
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
+const serif = Instrument_Serif({ subsets: ["latin"], variable: "--font-serif", weight: "400", style: ["normal", "italic"] });
+const mono = Roboto_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "Pause: a scam firewall for your family's money",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" className={`${body.variable} ${serif.variable} ${mono.variable}`}>
       <body>
         <WalletProvider>
           <AppHeader />

@@ -47,7 +47,7 @@ export default function CheckPage() {
   const stageIdx = v ? STAGES.findIndex((s) => s.id === v.stage) : -1;
 
   return (
-    <main className="check wrap">
+    <main className="check-page wrap">
 
       <section className="check-hero">
         <p className="eyebrow">Free chat check</p>
@@ -83,7 +83,7 @@ export default function CheckPage() {
           rows={11}
         />
         <div className="check-actions">
-          <p className="muted small">🔒 Checked in private AI hardware on NEAR AI Cloud. Never stored, never shared.</p>
+          <p className="muted small">Checked in private AI hardware on NEAR AI Cloud. Never stored, never shared.</p>
           <button className="btn primary" onClick={analyse} disabled={busy || chat.trim().length < 10}>
             {busy ? "Checking…" : "Check this chat"}
           </button>
@@ -147,7 +147,7 @@ export default function CheckPage() {
 
           {res.rules.addresses.length > 0 && v.level !== "Safe" && (
             <div className="armed">
-              <b>⏸ Pause is ready.</b> If you send money to{" "}
+              <b>Pause is ready.</b> If you send money to{" "}
               {res.rules.addresses.map((a) => <code key={a}>{a}</code>)} from a Pause wallet, it will be held and your family alerted.
             </div>
           )}

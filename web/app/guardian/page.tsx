@@ -61,7 +61,7 @@ function GuardianInner() {
     return (
       <main className="wrap app-page">
         <section className="empty-hero">
-          <span className="empty-icon" aria-hidden>👪</span>
+          <span className="empty-icon" aria-hidden><svg width="22" height="22" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" fill="currentColor" /><rect x="14" y="4" width="4" height="16" rx="1.5" fill="currentColor" /></svg></span>
           <h1>Look out for the people you love.</h1>
           <p className="lede">When someone names you as their guardian, risky payments from their vault show up here. Call them first, then approve, extend or stop the payment. You can never move their money anywhere but back to them.</p>
           <div className="hero-cta">

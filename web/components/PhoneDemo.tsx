@@ -31,7 +31,8 @@ function buildSteps(story: Story, platform: Platform): { lines: Line[]; steps: S
 
 const LEVEL_COLOR = { Safe: "var(--ok)", Low: "var(--ok)", Medium: "var(--warn)", High: "var(--bad)" } as const;
 
-export default function PhoneDemo() {
+export default function PhoneDemo({ variant = "full" }: { variant?: "full" | "hero" }) {
+  const hero = variant === "hero";
   const [storyId, setStoryId] = useState("romance");
   const [platform, setPlatform] = useState<Platform>("WhatsApp");
   const [i, setI] = useState(0); // steps shown
@@ -59,12 +60,23 @@ export default function PhoneDemo() {
   useEffect(() => {
     if (!playing) return;
     if (i >= steps.length) {
-      setPlaying(false);
+      if (!hero) setPlaying(false);
       return;
     }
     timer.current = window.setTimeout(() => setI((x) => x + 1), steps[i].wait);
     return () => clearTimeout(timer.current);
   }, [playing, i, steps]);
+
+  // The hero phone loops on its own.
+  useEffect(() => {
+    if (!hero || i < steps.length) return;
+    const t = window.setTimeout(() => setI(0), 5000);
+    return () => clearTimeout(t);
+  }, [hero, i, steps.length]);
+
+  useEffect(() => {
+    if (hero && !playing && i === 0) setPlaying(true);
+  }, [hero, playing, i]);
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" });
@@ -98,8 +110,8 @@ export default function PhoneDemo() {
   const final = has("final");
 
   return (
-    <div className="pdemo" ref={rootRef}>
-      <div className="pdemo-controls">
+    <div className={hero ? "pdemo-hero" : "pdemo"} ref={rootRef}>
+      {!hero && <div className="pdemo-controls">
         <div className="seg" role="group" aria-label="Story">
           {STORIES.map((s) => (
             <button key={s.id} className={storyId === s.id ? "on" : ""} onClick={() => restart(s.id, platform)}>
@@ -114,9 +126,9 @@ export default function PhoneDemo() {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
-      <div className="pdemo-grid">
+      <div className={hero ? "" : "pdemo-grid"}>
         {/* ------------------------------------------------ the phone */}
         <div className="device" aria-label="Phone simulation">
           <div className="device-screen">
@@ -221,7 +233,7 @@ export default function PhoneDemo() {
         </div>
 
         {/* ------------------------------------------ what Pause sees */}
-        <div className="insight" aria-live="polite">
+        {!hero && <div className="insight" aria-live="polite">
           <p className="eyebrow">What Pause sees</p>
           <div className="meter">
             <div className="meter-top">
@@ -272,7 +284,7 @@ export default function PhoneDemo() {
             <button className="btn small-btn" onClick={() => restart()}>{done ? "Replay" : playing ? "Restart" : "Play"}</button>
             <a className="linkbtn" href="/check">Check a real chat →</a>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

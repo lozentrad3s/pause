@@ -50,7 +50,7 @@ export default function HoldCard({ hold, actions = [], showOwner = false }: { ho
         </div>
       </div>
 
-      {hold.scam_type && <p className="hold-type">⚠ {SCAM_NAMES[hold.scam_type] ?? hold.scam_type}</p>}
+      {hold.scam_type && <p className="hold-type">{SCAM_NAMES[hold.scam_type] ?? hold.scam_type}</p>}
       {hold.memo && <p className="hold-memo">“{hold.memo}”</p>}
 
       {pending && (
@@ -58,7 +58,7 @@ export default function HoldCard({ hold, actions = [], showOwner = false }: { ho
           <div className="hold-bar"><span style={{ width: `${progress}%` }} /></div>
           <span className="muted small">
             {hold.guardian_approved
-              ? "✓ Guardian approved: can be paid now"
+              ? "Guardian approved: can be paid now"
               : ready
                 ? hold.risk === "High"
                   ? "Window ended. High risk needs a guardian's approval"

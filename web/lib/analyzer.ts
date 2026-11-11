@@ -46,7 +46,7 @@ const PATTERNS: Record<SignalId, RegExp> = {
   secrecy: /\b(don'?t tell|do not tell|keep (this|it) (between us|secret|private)|our (little )?secret|nobody (needs to|should|must) know|between (you and me|us two))\b/i,
   far_away_job: /\b(oil ?rig|offshore|deployed|deployment|military|army|soldier|peace ?keep|un doctor|doctor (with|in) (the )?un|ship captain|on a ship|engineer (in|abroad)|contract in (dubai|syria|yemen|afghanistan))\b/i,
   crisis: /\b(hospital|surgery|customs|clearance fee|stuck|stranded|arrested|bail|visa (fee|problem)|account (is )?(frozen|blocked|locked)|robbed|accident|tax (fee|clearance))\b/i,
-  investment: /\b(invest(ment|ing)?|trading|forex|crypto|bitcoin|btc|usdt|eth|mining|profit|returns?|platform|signals?|my uncle|insider|double your|guaranteed)\b/i,
+  investment: /\b(invest(ment|ing)?|trading|forex|crypto|bitcoin|btc|usdt|eth|mining|profit|returns on|trading platform|investment platform|trading signals?|signal group|my uncle|insider|double your|guaranteed returns?)\b/i,
   money_ask: /\b((send|transfer|lend|wire|pay|deposit) (me|it|the money|some|\$|₦|\d)|gift ?cards?|itunes|steam card|apple card|wallet address|bank details|western union|moneygram|\d[\d,.]*\s?(near|usdt|usd|dollars|naira|₦|btc)|[$₦]\s?\d)/i,
   urgency: /\b(today|right now|tonight|immediately|asap|right away|before it'?s too late|expires?|last chance|hurry|within (an|one|1) hour)\b/i,
   guilt: /\b(if you (really |truly )?love(d)? me|don'?t you trust me|after (all|everything) (i|we)|i thought you cared|you don'?t care|prove (your|you) love)\b/i,

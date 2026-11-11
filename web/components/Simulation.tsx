@@ -206,14 +206,14 @@ export default function Simulation() {
         <div className="phone guardian">
           <div className="phone-top">
             <span>Her son · Guardian</span>
-            <span className="muted">🔔</span>
+            <span className="muted">Alerts</span>
           </div>
           <div className="gfeed">
             {view.guardian.length === 0 && <p className="muted small center">Alerts reach the family only when something looks wrong.</p>}
             {view.guardian.map((g, i) => (
               <div key={i} className="gcard">
                 {g.text && <p>{g.text}</p>}
-                {g.action && <span className="gaction">✓ {g.action}</span>}
+                {g.action && <span className="gaction">{g.action}</span>}
               </div>
             ))}
           </div>
