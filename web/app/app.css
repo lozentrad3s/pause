@@ -1,8 +1,8 @@
 /* Shared header */
 .topbar { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: saturate(1.4) blur(14px); -webkit-backdrop-filter: saturate(1.4) blur(14px); border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .topbar-inner { display: flex; align-items: center; gap: 24px; height: 64px; }
-.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-display); font-weight: 700; font-size: 1.45rem; letter-spacing: -0.01em; }
-.logo-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--accent); display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent) 70%, transparent); }
+.logo { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--font-display); font-weight: 800; font-size: 1.35rem; letter-spacing: -0.03em; }
+.logo-mark { width: 30px; height: 30px; border-radius: 9px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent) 70%, transparent); }
 .logo-mark i { width: 4px; height: 13px; border-radius: 2px; background: var(--accent-ink); }
 .topnav { display: flex; gap: 4px; margin-left: auto; }
 .topnav a, .topnav-mobile a { text-decoration: none; color: var(--muted); padding: 8px 12px; border-radius: 999px; font-size: 0.95rem; transition: color 0.15s ease, background 0.15s ease; }
@@ -43,14 +43,15 @@
 .empty-icon { display: inline-grid; place-items: center; width: 72px; height: 72px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); font-size: 2rem; margin-bottom: 16px; }
 
 .vault-head { display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; }
-.balance-card { background: var(--ink); color: var(--bg); border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.balance-card { background: linear-gradient(140deg, #0b1220 0%, #1b1550 60%, #3b2bd1 130%); color: #fff; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
 .balance-card::after { content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--accent) 55%, transparent), transparent 70%); }
-.balance-card .eyebrow { color: color-mix(in srgb, var(--accent) 60%, white); }
+.balance-card .eyebrow { color: #a5b4fc; }
+.balance-card::after { background: radial-gradient(circle, rgba(0,194,255,0.35), transparent 70%) !important; }
 .balance { font-family: var(--font-display); font-size: clamp(2.6rem, 6vw, 3.6rem); font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
 .balance span { font-size: 0.4em; opacity: 0.7; }
 .balance-meta { display: flex; flex-direction: column; gap: 4px; font-size: 0.92rem; opacity: 0.85; }
-.balance-card input { background: color-mix(in srgb, var(--bg) 12%, transparent); color: var(--bg); border-color: color-mix(in srgb, var(--bg) 25%, transparent); }
-.balance-card .btn { border-color: var(--bg); color: var(--bg); }
+.balance-card input { background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.2); }
+.balance-card .btn { border-color: rgba(255,255,255,0.4); color: #fff; background: rgba(255,255,255,0.08); }
 
 .send-card, .panel, .create-form { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
 .send-card label, .create-form label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 0.92rem; }

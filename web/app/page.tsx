@@ -42,7 +42,7 @@ export default function Home() {
       <section className="hero wrap">
         <div className="hero-copy">
           <p className="eyebrow">Romance scam protection · built on NEAR</p>
-          <h1>Love shouldn&apos;t cost you your savings.</h1>
+          <h1>Love shouldn&apos;t cost you <span className="grad">your savings.</span></h1>
           <p className="lede">
             Scammers meet people on WhatsApp, Instagram and TikTok, build trust for weeks, then ask for money in a hurry.
             Pause reads the warning signs early, warns you privately, and holds the payment if you send it anyway.
@@ -51,6 +51,7 @@ export default function Home() {
             <Link className="btn primary" href="/check">Check a chat, free</Link>
             <a className="btn" href="#demo">Watch it stop a scam</a>
           </div>
+          <div className="trust-row"><span>Private AI on NEAR AI Cloud</span><span>Agent can&apos;t move money</span><span>Family guardians</span><span>Live on NEAR testnet</span></div>
           <p className="hero-note muted small">Every team here built a firewall so AI agents can&apos;t be scammed. We built one for your mother.</p>
         </div>
       </section>

@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { Fraunces, Atkinson_Hyperlegible } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import "./v2.css";
 import "./app.css";
 import { WalletProvider } from "@/lib/wallet";
 import AppHeader from "@/components/AppHeader";
 
-const display = Fraunces({ subsets: ["latin"], variable: "--font-display", weight: ["500", "700"] });
-// Atkinson Hyperlegible was designed for readers with low vision.
-const body = Atkinson_Hyperlegible({ subsets: ["latin"], variable: "--font-body", weight: ["400", "700"] });
+const display = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-display", weight: ["600", "700", "800"] });
+const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 
 export const metadata: Metadata = {
   title: "Pause: a scam firewall for your family's money",
