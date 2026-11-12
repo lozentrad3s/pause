@@ -27,6 +27,29 @@ const LOSSES = [
   ["Investment scams, the largest category", "$8.6B"],
 ];
 
+// What exists now and what doesn't, said plainly. Kept in step with the README.
+const TODAY: [string, string, "yes" | "part" | "no"][] = [
+  ["Check a message or a call by text", "Fixed rules always answer. With the private model, in ten languages.", "yes"],
+  ["Talk to Pause out loud", "In a browser or as a Telegram voice message. It is not a telephone number.", "part"],
+  ["Hold a risky payment", "Live on NEAR testnet, with a countdown and one-tap cancel.", "yes"],
+  ["Family guardians", "Up to three. They can stop, approve, give more time or report.", "yes"],
+  ["Shared scam registry", "One report warns every vault. Three reports from different vaults block.", "yes"],
+  ["Proof the AI ran privately", "The enclave's signature is checked on every answer. The hardware quote inside the report is linked, not yet checked by Pause.", "part"],
+  ["Real money", "Testnet only. No mainnet, no bank transfers or cards.", "no"],
+  ["Bitcoin and Ethereum payments", "Planned through NEAR Chain Signatures. Not built.", "no"],
+];
+
+const FAQ: [string, string][] = [
+  ["What if Pause gets it wrong?", "It will sometimes. A wrong hold costs time, never money: the payment waits in your own vault, and you or a guardian can let it through. Pause always tells you to talk to someone you trust."],
+  ["Who can move my money?", "Only you. A guardian can stop a payment, approve it early or give it more time, but the money can only go to the person you named or back into your vault. The AI agent can record a verdict and extend a hold. It cannot send, release or redirect anything, and NEAR enforces that, not our code."],
+  ["The caller told me to switch it off. Can they make me?", "Not quickly. Removing a guardian, raising a limit or trusting a new receiver waits out a delay, and your guardians are told the moment you ask. Making protection stricter is instant."],
+  ["Is what I tell Pause private?", "The questions run on a model inside a sealed enclave on NEAR AI Cloud. Pause checks the enclave's signature on every answer and shows you the result. The text you paste is analysed in memory and not stored. On chain there is only a hash of the reasons; the registry holds receiver accounts, never your name, messages or amounts."],
+  ["What happens if nobody answers in time?", "A payment judged Low or Medium risk can be released by you once the hold window ends. A payment judged High risk stays held until a guardian approves it, however long the caller tells you to wait."],
+  ["Can someone use the registry to blacklist an honest shop?", "A vault can only report a receiver through a payment of its own that was held, cancelled or stopped, and each vault counts once. One report is a warning, not a block. It takes three different vaults to block a receiver."],
+  ["Do I need to understand crypto?", "To ask whether something is a scam, no: open Call Pause or Check a message and say what happened. The vault does need a NEAR account today. The demo makes two for you so you can see it work without one."],
+  ["Is this real money?", "No. Everything here runs on NEAR testnet with test tokens. Pause is a hackathon project, not a finished product."],
+];
+
 export default function Home() {
   return (
     <main id="main">
@@ -183,6 +206,56 @@ export default function Home() {
         </div>
       </section>
 
+      <section id="today" className="band">
+        <div className="wrap">
+          <div className="section-intro">
+            <h2>
+              What works today, and what <span className="serif">doesn&apos;t</span>
+            </h2>
+            <p className="lede">Every line marked as working can be checked in the demo or on the <Link href="/status">status page</Link>.</p>
+          </div>
+          <ul className="today">
+            {TODAY.map(([t, d, state]) => (
+              <li key={t}>
+                <span className={`today-state ${state}`}>{state === "yes" ? "Works today" : state === "part" ? "Partly" : "Not built"}</span>
+                <div>
+                  <h3>{t}</h3>
+                  <p>{d}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section id="questions" className="band story-band">
+        <div className="wrap faq-wrap">
+          <h2>
+            Fair <span className="serif">questions</span>
+          </h2>
+          <div className="faq">
+            {FAQ.map(([q, a]) => (
+              <details key={q}>
+                <summary>{q}</summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="band night close-band">
+        <div className="wrap">
+          <h2>
+            See a scam stopped, in two <span className="serif">minutes</span>
+          </h2>
+          <div className="hero-cta">
+            <Link className="btn primary big" href="/demo">Try as a judge</Link>
+            <Link className="btn ghost-night big" href="/call">Call Pause</Link>
+          </div>
+        </div>
+      </section>
+
       <footer className="footer">
         <div className="wrap footer-grid">
           <div>
@@ -190,6 +263,8 @@ export default function Home() {
             <p className="muted small">Testnet only. Pause can be wrong; when in doubt, talk to someone you trust.</p>
           </div>
           <div className="hero-cta" style={{ marginTop: 0 }}>
+            <a className="btn small-btn" href="#today">What works today</a>
+            <a className="btn small-btn" href="#questions">Questions</a>
             <Link className="btn small-btn" href="/status">Status</Link>
             <a className="btn small-btn" href="https://github.com/lozentrad3s/pause">GitHub</a>
           </div>
