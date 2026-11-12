@@ -182,6 +182,7 @@ The organisers publish an example prompt for each track. This is where each thin
 | [`agent/`](agent/) | The Telegram agent. It imports the analyzer from `web/lib` |
 | [`scripts/`](scripts/) | `judge.ts` (the no-keys check run) and `ai-check.ts` (one live verdict with its proof) |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design notes: colours, surfaces, photographs, the mascot |
+| [`video/`](video/) | The two videos as code. `make-launch.mjs` renders the motion-graphics explainer from `film.html` and `launch.json`; `make-demo.mjs` records the real site while it runs the demo on testnet. Both need Edge or Chrome, `pip install edge-tts` for the narration, and `npm install` inside `video/`. Output goes to `video/out/` |
 | [`HACKATHON.md`](HACKATHON.md) | The organisers' rules, as downloaded |
 
 ## NEAR features used

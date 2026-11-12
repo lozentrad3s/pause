@@ -10,3 +10,5 @@ neardev/
 agent/data/
 *.tsbuildinfo
 design-sources/
+video/out/
+video/audio/

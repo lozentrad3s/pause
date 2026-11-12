@@ -1,0 +1,21 @@
+{
+  "title": "Pause AI launch explainer",
+  "voice": "en-GB-SoniaNeural",
+  "endLine": "github.com/lozentrad3s/pause",
+  "scenes": [
+    { "id": "hook", "text": "Every scam starts the same way. Someone is in a hurry. And it isn't you." },
+    { "id": "stat", "text": "Last year, Americans reported twenty point nine billion dollars lost to online scams. The money was sent by the real owner, from their real phone. So nothing looked wrong." },
+    { "id": "title", "text": "Pause AI takes the urgency away." },
+    { "id": "held", "text": "Pay someone you trust, and it goes straight through. Anything risky waits in your own vault, with a countdown, and a cancel button." },
+    { "id": "asked", "text": "While it waits, Pause asks the questions scammers coach people to lie about. A private AI reads the answers inside a sealed enclave, and shows you the proof." },
+    { "id": "family", "text": "And the people who love you get a say. One tap from your son or daughter stops the payment. The money never leaves." },
+    { "id": "talk", "text": "You don't need to read a risk score. Just talk. Pause answers out loud, in your language." },
+    { "id": "fr", "voice": "fr-FR-DeniseNeural", "text": "Cela ressemble à une arnaque. Votre banque ne vous demandera jamais de déplacer votre argent vers un compte sécurisé." },
+    { "id": "es", "voice": "es-ES-ElviraNeural", "text": "Esto parece una estafa. Llame usted mismo a su hijo, al número de siempre, antes de enviar dinero." },
+    { "id": "tr", "voice": "tr-TR-EmelNeural", "text": "Bu bir dolandırıcılığa benziyor. Bağlantıya dokunmayın. Kargo şirketinin kendi uygulamasını açın." },
+    { "id": "zh", "voice": "zh-CN-XiaoxiaoNeural", "text": "这看起来像是诈骗。没有人能保证收益。请先和家人商量。" },
+    { "id": "drainer", "text": "Even a payment you never made. One bad link, a thief signs with your key, and it still waits in the vault, until your family says yes." },
+    { "id": "near", "text": "Built on NEAR. A Rust contract holds the money. The AI's key can do two things, and neither of them is move it." },
+    { "id": "cta", "text": "Pause AI. See a scam stopped, in two minutes.", "pad": 1.6 }
+  ]
+}

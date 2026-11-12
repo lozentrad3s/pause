@@ -319,7 +319,7 @@ export default function CallPage() {
 
           {phase === "answer" && v && res && (
             <div className={`call-answer ${tone}`}>
-              <p className="call-level">{v.level === "Safe" ? "This looks safe" : v.level === "Low" ? "Probably fine, stay alert" : v.level === "Medium" ? "Be careful" : "This looks like a scam"}</p>
+              <p className="call-level">{v.kind === "question" && (v.level === "Safe" || v.level === "Low") ? "Here is how Pause helps" : v.kind === "question" ? "Act now: this may be a theft in progress" : v.level === "Safe" ? "This looks safe" : v.level === "Low" ? "Probably fine, stay alert" : v.level === "Medium" ? "Be careful" : "This looks like a scam"}</p>
               {v.scam_type !== "none" && <p className="call-type">{SCAM_NAMES[v.scam_type]}</p>}
               <p className="call-summary">{v.summary}</p>
               <ol className="call-advice">{v.advice.map((a) => <li key={a}>{a}</li>)}</ol>
