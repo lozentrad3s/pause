@@ -10,9 +10,22 @@ Scammers don't hack the phone, they hack the person: "your bank account is compr
 2. **Paused if you pay anyway.** The Pause contract holds risky payments. An agent asks the six questions scammers coach victims to lie about. The agent's NEAR key cannot move money.
 3. **Family steps in.** Up to three guardians can stop a held payment. One family's report warns every other vault; three reports block the receiver for everyone.
 
-Contract: [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Telegram agent: [@Pausenearai_bot](https://t.me/Pausenearai_bot) · Tracks: Social Money, Privacy & Private AI, Real-World Money, AI Security & Defense
+**Live: https://pauseai-near.vercel.app** · press **Try as a judge** on [/demo](https://pauseai-near.vercel.app/demo) to stop a scam with two real testnet accounts, or talk to it on [/call](https://pauseai-near.vercel.app/call).
 
-## Try it in 3 minutes, no wallet or keys needed
+Contract: [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Telegram agent: [@Pausenearai_bot](https://t.me/Pausenearai_bot) · Tracks: AI Security & Defense, Privacy & Private AI, Open Innovation
+
+## Try it live, nothing to install
+
+1. **https://pauseai-near.vercel.app/demo** → press **Try as a judge**.
+   → Two real testnet accounts (Grace and her son) and a vault are made in about ten seconds.
+2. Press **A payment Grace never made**, then **Answer Pause's questions** and pick the **I didn't send this** answers.
+   → The payment is held, the agent records a High risk `wallet_drainer` verdict on chain, and **Checked privately** shows the TEE signature checks.
+3. On the son's phone press **Stop it**, then **Start over**.
+   → The money stays in the vault; every step links to its testnet transaction.
+4. **https://pauseai-near.vercel.app/call** → press the round button and describe a scam call, or tap an example. Pick another language in the header and Pause answers, and speaks, in it.
+5. **https://pauseai-near.vercel.app/status** → every dependency checked live.
+
+## Try it in 3 minutes from the code, no wallet or keys needed
 
 Needs Node 20.12 or newer. Rust is optional (it adds the contract checks).
 
