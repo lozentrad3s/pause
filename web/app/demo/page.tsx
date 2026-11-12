@@ -4,6 +4,8 @@
 // owner and their guardian, shown as two phones. Every button below sends a
 // real transaction signed in this browser, and links to it on the explorer.
 
+import { useLang } from "@/lib/lang";
+import Photo from "@/components/Photo";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ProofBadge from "@/components/ProofBadge";
@@ -34,13 +36,14 @@ interface InterviewResult {
 // One tap fills an answer. The first set is what a coached victim says; the
 // second is an ordinary payment. Judges can also type their own.
 const SCRIPTED = [
-  ["My trading mentor's exchange. He's teaching me.", "A deposit for a second-hand bike I went to see."],
-  ["He messaged me on Instagram last month.", "I found the advert and contacted the seller."],
-  ["He said not to tell my family until the profits come in.", "No, my son knows about it."],
-  ["Yes, the bonus round closes today.", "No, there's no rush."],
-  ["He promised 3% a day.", "No, nothing like that."],
-  ["Yes, he's on WhatsApp with me right now.", "No, I'm on my own."],
+  ["My trading mentor's exchange. He's teaching me.", "A deposit for a second-hand bike I went to see.", "I don't know. I didn't make this payment."],
+  ["He messaged me on Instagram last month.", "I found the advert and contacted the seller.", "Nobody. I clicked a link to claim an airdrop and my wallet asked me to sign."],
+  ["He said not to tell my family until the profits come in.", "No, my son knows about it.", "No."],
+  ["Yes, the bonus round closes today.", "No, there's no rush.", "The page said the claim closes in ten minutes."],
+  ["He promised 3% a day.", "No, nothing like that.", "It said I would receive free tokens."],
+  ["Yes, he's on WhatsApp with me right now.", "No, I'm on my own.", "No, I'm on my own."],
 ];
+const SCRIPT_NAMES = ["Coached victim", "Ordinary payment", "I didn't send this"];
 
 const short = (id: string) => (id.length > 26 ? `${id.slice(0, 14)}…${id.slice(-8)}` : id);
 
@@ -55,7 +58,7 @@ export default function DemoPage() {
   const [reported, setReported] = useState<RegistryEntry | null>(null);
   const [log, setLog] = useState<LogLine[]>([]);
   const [tab, setTab] = useState<"owner" | "guardian">("owner");
-  const [lang, setLang] = useState<Lang>("en");
+  const { lang, setLang } = useLang();
   const [interview, setInterview] = useState<{ holdId: number; answers: string[]; draft: string; sending: boolean } | null>(null);
   const [verdicts, setVerdicts] = useState<Record<number, InterviewResult>>({});
   const [sets, setSets] = useState<number | null>(null);
@@ -180,7 +183,8 @@ export default function DemoPage() {
   if (!guest) {
     return (
       <main id="main" className="wrap demo-page">
-        <section className="demo-intro">
+        <section className="demo-intro with-photo">
+          <div>
           <h1>Stop a scam yourself, in two minutes</h1>
           <p className="lede">
             You&apos;ll play Grace, who is about to pay a stranger, and her son, who can stop it. Both are real accounts on NEAR
@@ -198,6 +202,8 @@ export default function DemoPage() {
           {sets === 0 && <p className="notice">All demo accounts are in use right now. Please try again in a few minutes, or connect your own testnet wallet on the <Link href="/vault">vault page</Link>.</p>}
           {sets === -1 && <p className="notice">Guest accounts aren&apos;t switched on for this deployment. You can connect a testnet wallet on the <Link href="/vault">vault page</Link>, or run <code>npm run judge</code> from the repository.</p>}
           {error && <p className="notice bad" role="alert">{error}</p>}
+        </div>
+          <Photo name="showing-phone" alt="A smiling woman holding her phone up to the camera" ratio="3 / 4" pos="center 20%" priority />
         </section>
       </main>
     );
@@ -231,6 +237,11 @@ export default function DemoPage() {
           <b>Pay a &ldquo;trading mentor&rdquo;</b>
           <span>0.06 NEAR to someone she has never paid</span>
           <em>{busy === "stranger" ? "Sending…" : "Expect: held"}</em>
+        </button>
+        <button className="dpay" disabled={!!busy} onClick={() => pay("drainer", guest.stranger.replace("fastgain-", "airdrop-claim-"), "0.08", "A wallet drainer signed a 0.08 NEAR payment with Grace's key", "Claim airdrop")}>
+          <b>A payment Grace never made</b>
+          <span>She clicked a fake airdrop link. The drainer sends 0.08 NEAR from her vault.</span>
+          <em>{busy === "drainer" ? "Sending…" : "Expect: held, and her son is told"}</em>
         </button>
         <button className="dpay" disabled={!!busy} onClick={() => pay("known", guest.known_scammer, "0.03", "Grace tried to pay an address other people reported")}>
           <b>Pay a reported address</b>
@@ -292,7 +303,7 @@ export default function DemoPage() {
                     <div className="quick">
                       {SCRIPTED[interview.answers.length].map((s, i) => (
                         <button key={s} className="chip" onClick={() => answer(s)}>
-                          <small>{i === 0 ? "Coached victim" : "Ordinary payment"}</small>
+                          <small>{SCRIPT_NAMES[i]}</small>
                           {s}
                         </button>
                       ))}

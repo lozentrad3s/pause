@@ -9,3 +9,4 @@ neardev/
 .near-credentials/
 agent/data/
 *.tsbuildinfo
+design-sources/

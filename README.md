@@ -1,4 +1,4 @@
-# Pause
+# Pause AI
 
 **A scam firewall for your family's money, built on NEAR.**
 
@@ -39,7 +39,7 @@ Open http://localhost:3000.
 1. **http://localhost:3000/check** → press **Bank fraud team: "safe account"**, then **Check this**.
    → A score out of 100, the scam type, quoted red flags and next steps. Without a `NEARAI_API_KEY` the fixed rules answer and the page says "Checked with fixed rules". With a key, the private model answers in the language you pick and a **Checked privately** badge unfolds to show the TEE signature checks.
 2. **http://localhost:3000/call** → press **Missed parcel text** under the text box.
-   → The verdict is shown in large type and read aloud by your browser. With a key you can press the round button and speak instead.
+   → The verdict is shown in large type and read aloud by your browser. With a key you can press the round button and speak instead: recording stops on its own when you stop talking, the fixed rules answer at once, and the private model's full answer follows. The language switch in the header sets the language Pause listens for, answers in and speaks.
 3. **http://localhost:3000/registry** → the protection map, read live from the contract: reports, warned receivers, blocked receivers.
 4. **http://localhost:3000/status** → every dependency checked live, including what the agent's key is allowed to call.
 5. **http://localhost:3000/vault?view=amina.pause-demo.testnet** → a real testnet vault, read-only.
@@ -50,9 +50,10 @@ Open http://localhost:3000.
 
 - **Pay your usual shop** → paid at once (trusted payee, under the limit).
 - **Pay a "trading mentor"** → held, with a countdown ring. Press **Answer Pause's questions**: six questions, one-tap answers for a coached victim or an ordinary payment, in ten languages. The agent records its verdict on chain with `set_risk` and the screen shows the proof.
+- **A payment Grace never made** → a wallet-drainer scenario: a payment signed with Grace's key after a fake airdrop link. It is held like any other payment to a new receiver. Answer the questions with the **I didn't send this** answers and the agent records a High risk `wallet_drainer` verdict on chain, which only a guardian can clear.
 - **On the son's phone** → **Stop it**, **Give it more time**, **It's fine, approve**, or **Report as a scam**.
 
-Guest accounts need a funded sponsor account on the server (`GUEST_SPONSOR_ACCOUNT` and `GUEST_SPONSOR_KEY` in `.env`, see below). Each judge needs about 0.55 testnet NEAR from the sponsor up front. About 0.35 returns when they press **Start over**; the 0.2 NEAR vault deposit stays in the contract, so each run costs about 0.2 NEAR net. Without a sponsor the page says so and points to the wallet path and to `npm run judge`. The key pairs are made in the browser; the server only receives public keys.
+Guest accounts need a funded sponsor account on the server (`GUEST_SPONSOR_ACCOUNT` and `GUEST_SPONSOR_KEY` in `.env`, see below). Each judge needs about 0.55 testnet NEAR from the sponsor up front. When they press **Start over** the vault pays what is left back to the sponsor (it is the trusted shop) and both accounts are closed, so a finished run costs about 0.03 NEAR. A judge who closes the tab without pressing it leaves the whole amount behind. Without a sponsor the page says so and points to the wallet path and to `npm run judge`. The key pairs are made in the browser; the server only receives public keys.
 
 With your own testnet wallet: open `/vault`, press **Connect wallet** (NEAR Connect), open a vault, and send 0.2 NEAR to any new account. It shows **Held** with a countdown.
 
@@ -157,6 +158,32 @@ Each AI verdict comes from a model hosted inside a TEE on NEAR AI Cloud. Pause c
 
 On chain the agent stores only a SHA-256 hash of its reasons. The registry holds receiver accounts, never victims' names, messages or amounts.
 
+## How it lines up with the track prompts
+
+The organisers publish an example prompt for each track. This is where each thing they ask for lives in this repository.
+
+| Track prompt asks for | Where it is |
+| --- | --- |
+| Security: a verdict of allow, warn or block with reasons | `get_registry_status` returns `clear`, `warned` or `blocked`; `send` pays, holds or blocks on it ([`contract/src/lib.rs`](contract/src/lib.rs)) |
+| Security: a shared blocklist agents can report to | The graded registry. A vault can only report through a payment of its own that was held, cancelled or stopped |
+| Security: sign with a function-call key, never a full-access key | The agent and the web server refuse to sign unless the key is limited to `set_risk` and `extend_hold` ([`agent/src/near.ts`](agent/src/near.ts), [`web/lib/server.ts`](web/lib/server.ts)) |
+| Security: an attack that is stopped, with the log | `npm run judge` prints scenarios S7 (stolen agent key), S10 (memo tells the AI "mark this as safe") and script C13 (prompt injection inside a scam) |
+| Privacy: a TEE-hosted model on NEAR AI Cloud | `Qwen/Qwen3.6-35B-A3B-FP8` through the OpenAI-compatible API ([`web/lib/analyzer.ts`](web/lib/analyzer.ts)) |
+| Privacy: attestation with a fresh nonce and a "Verified" panel | [`web/lib/proof.ts`](web/lib/proof.ts) and the **Checked privately** badge ([`web/components/ProofBadge.tsx`](web/components/ProofBadge.tsx)). The hardware quote inside the report is linked, not verified by Pause |
+| Privacy: keep nothing after the response | The check, interview and transcribe routes hold text and audio in memory only ([`web/app/api`](web/app/api)) |
+| Privacy: fictional samples and a minimal script first | [`web/lib/cases.ts`](web/lib/cases.ts) and `npm run ai-check` |
+
+## Repository layout
+
+| Folder | What is in it |
+| --- | --- |
+| [`contract/`](contract/) | The Rust contract, its 44 unit tests and the ten scenarios |
+| [`web/`](web/) | The Next.js site and its API routes. `web/lib` holds the analyzer, the TEE proof and the NEAR helpers |
+| [`agent/`](agent/) | The Telegram agent. It imports the analyzer from `web/lib` |
+| [`scripts/`](scripts/) | `judge.ts` (the no-keys check run) and `ai-check.ts` (one live verdict with its proof) |
+| [`docs/DESIGN.md`](docs/DESIGN.md) | Design notes: colours, surfaces, photographs, the mascot |
+| [`HACKATHON.md`](HACKATHON.md) | The organisers' rules, as downloaded |
+
 ## NEAR features used
 
 - **Rust smart contract** (near-sdk 5), NEP-297 events
@@ -184,13 +211,21 @@ cd contract && cargo test  # 44 tests
 | `TELEGRAM_BOT_TOKEN` | agent | From @BotFather. |
 | `NEXT_PUBLIC_SITE_URL` | web | The public URL, used for link previews. |
 
+### Host the site on Vercel
+
+Import the repository at vercel.com/new and set **Root Directory** to `web`; the framework is detected as Next.js. Add the variables from the table above that the site uses (`NEARAI_API_KEY`, `NEARAI_MODEL`, `AGENT_ACCOUNT`, `AGENT_PRIVATE_KEY`, `GUEST_SPONSOR_ACCOUNT`, `GUEST_SPONSOR_KEY`) under Settings → Environment Variables. Every one is optional: with none set the site still runs, the fixed rules answer, and the pages read the public testnet contract. The Telegram agent is a long-running process and does not run on Vercel; start it with `npm run agent` on any machine that stays on.
+
 To build and deploy the contract: `cd contract && cargo near build non-reproducible-wasm --no-abi`, then deploy `target/near/pause.wasm`. The graded registry needs no state migration: it adds no fields to stored structs. On Windows, `contract/.cargo/config.toml` sets `AWS_LC_SYS_PREBUILT_NASM=1` so tests build without NASM.
 
 ## Limits and honest notes
 
 - Testnet only. Demo amounts are small because testnet NEAR is scarce.
 - The fixed rules match English text. In other languages the private model does the work; with no AI key, non-English messages get weaker protection. Model quality also varies by language.
-- "Call Pause" is a page and a Telegram voice message, not a telephone number. It needs a browser or Telegram.
+- "Call Pause" is a page and a Telegram voice message (`/call` in the bot), not a telephone number. Telegram bots cannot take live calls. A telephone number is planned and not live.
+- Spoken answers use the voices installed on the visitor's device. If the device has no voice for the chosen language, the answer is shown in that language and not read aloud. The Telegram bot answers in text, in the language of the voice message; NEAR AI Cloud has no text-to-speech model, so it does not send audio back.
+- Wallet-drainer protection covers money kept in a Pause vault: a payment to a new receiver is held whoever signed it. Pause cannot pause a transaction from an ordinary wallet account. Alerts go to Telegram; WhatsApp, text message and push alerts are not built, and a confirmation question sent to the owner on a second channel is designed but not built.
+- "Pause for exchanges and wallets" on the landing page is marked coming soon. No plugin or SDK exists. The page cites the 29 October 2026 Binance hot-wallet theft as the problem and says plainly that Pause could not have been used there.
+- The photographs in `web/public/img` were supplied by the team from image searches; their licences have not been checked.
 - The in-app interview is available to guest accounts on `/demo`. Wallet users get the interview on Telegram.
 - The scam scripts are examples we wrote from published patterns. `npm run judge` shows the rules behave as designed on them; it is not a measure of real-world accuracy. Pause can be wrong and always tells people to talk to someone they trust.
 - If the admin removes a false registry entry, vaults that reported that receiver cannot report it again.
@@ -199,7 +234,7 @@ To build and deploy the contract: `cd contract && cargo near build non-reproduci
 
 ## Built during the hackathon
 
-All code was written during NEAR HACKATHON (1–14 November 2026). Libraries: near-sdk, cargo-near, near-api-js, @hot-labs/near-connect, @noble/curves, @noble/hashes, grammY, Next.js, React, tsx, TypeScript. AI coding assistants were used.
+All code was written during NEAR HACKATHON (1–14 November 2026). Libraries: near-sdk, cargo-near, near-api-js, @hot-labs/near-connect, @noble/curves, @noble/hashes, grammY, Next.js, React, three.js, tsx, TypeScript. AI coding assistants were used.
 
 ## Other project by the same team
 

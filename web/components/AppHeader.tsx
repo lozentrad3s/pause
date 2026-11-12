@@ -1,11 +1,15 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { LANGS, type Lang } from "@/lib/i18n";
+import { useLang } from "@/lib/lang";
 import { useWallet } from "@/lib/wallet";
 
 const LINKS = [
+  { href: "/", label: "Home" },
   { href: "/demo", label: "Try it" },
   { href: "/call", label: "Call Pause" },
   { href: "/check", label: "Check a message" },
@@ -18,6 +22,7 @@ export default function AppHeader() {
   const path = usePathname();
   const { accountId, signIn, signOut, ready } = useWallet();
   const [live, setLive] = useState<boolean | null>(null);
+  const { lang, setLang } = useLang();
 
   useEffect(() => {
     fetch("/api/status").then((r) => r.json()).then((s) => setLive(!!s.checks?.find((c: { id: string; ok: boolean }) => c.id === "contract")?.ok)).catch(() => setLive(false));
@@ -33,16 +38,20 @@ export default function AppHeader() {
     <header className="topbar">
       <div className="wrap topbar-inner">
         <Link href="/" className="logo" aria-label="Pause home">
-          <span className="logo-mark" aria-hidden>
-            <i /><i />
-          </span>
-          Pause
+          <Image src="/img/logo-mark.png" alt="" width={38} height={38} priority />
+          <span>Pause <b>AI</b></span>
         </Link>
         <nav className="topnav" aria-label="Main">{nav}</nav>
         <Link href="/status" className={`live ${live === null ? "" : live ? "ok" : "no"}`} title="System status">
-          <span aria-hidden />
-          {live === false ? "Testnet slow" : "Live on testnet"}
+          {live === false ? "Testnet slow" : "Status"}
         </Link>
+        <label className="lang-pick" title="The language Pause listens for and answers in">
+          <span className="sr-only">Language Pause answers in</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.8" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" fill="none" stroke="currentColor" strokeWidth="1.8" /></svg>
+          <select value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+            {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+          </select>
+        </label>
         {accountId ? (
           <button className="acct" onClick={signOut} title="Sign out">
             <span className="acct-dot" aria-hidden />

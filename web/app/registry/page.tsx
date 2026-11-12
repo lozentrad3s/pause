@@ -1,5 +1,6 @@
 "use client";
 
+import Photo from "@/components/Photo";
 import { useEffect, useState } from "react";
 import { accountUrl, SCAM_NAMES, view, type RegistryEntry, type Stats } from "@/lib/near";
 
@@ -29,11 +30,16 @@ export default function RegistryPage() {
 
   return (
     <main id="main" className="wrap app-page">
+      <header className="page-head">
+      <div>
       <h1>Protection map</h1>
       <p className="lede">
         When one family stops a scam, every other family is warned about that receiver. When three different vaults report
         it, it is blocked for everyone. No victim&apos;s name, message or amount is ever stored here.
       </p>
+      </div>
+      <Photo name="friends-tablet" alt="A group of older friends laughing around a tablet" ratio="4 / 3" priority />
+      </header>
 
       <div className="stat-row">
         <div><b>{stats?.scams_confirmed ?? "–"}</b><span>scam reports from families</span></div>

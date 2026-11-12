@@ -17,8 +17,11 @@ export async function POST(req: Request) {
   if (limited(`voice:${clientIp(req)}`, 6)) return NextResponse.json({ error: "Too many recordings. Try again in a minute." }, { status: 429 });
 
   let audio: File | null = null;
+  let lang = "";
   try {
-    audio = (await req.formData()).get("audio") as File | null;
+    const incoming = await req.formData();
+    audio = incoming.get("audio") as File | null;
+    lang = String(incoming.get("lang") ?? "").slice(0, 2).toLowerCase();
   } catch {
     audio = null;
   }
@@ -28,12 +31,15 @@ export async function POST(req: Request) {
   const form = new FormData();
   form.append("file", audio, audio.name || "question.webm");
   form.append("model", "openai/whisper-large-v3");
+  // Telling Whisper the language skips its detection pass and stops short
+  // clips being heard as the wrong language.
+  if (/^[a-z]{2}$/.test(lang)) form.append("language", lang);
   try {
     const res = await fetch("https://cloud-api.near.ai/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
-      signal: AbortSignal.timeout(45_000),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) throw new Error(`transcription ${res.status}`);
     const data = await res.json();

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLang } from "@/lib/lang";
+import Photo from "@/components/Photo";
 import { useState } from "react";
 import ProofBadge from "@/components/ProofBadge";
 import { SCAM_NAMES, STAGES, type Analysis } from "@/lib/analyzer";
@@ -10,7 +12,7 @@ import { PLATFORMS, STORIES, storyAsText, type Platform } from "@/lib/stories";
 export default function CheckPage() {
   const [chat, setChat] = useState("");
   const [platform, setPlatform] = useState<Platform>("WhatsApp");
-  const [lang, setLang] = useState<Lang>("en");
+  const { lang, setLang } = useLang();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [res, setRes] = useState<Analysis | null>(null);
@@ -42,12 +44,15 @@ export default function CheckPage() {
   return (
     <main id="main" className="check-page wrap">
 
-      <section className="check-hero">
+      <section className="check-hero with-photo">
+        <div>
         <h1>Is this a scam?</h1>
         <p className="lede">
           Paste a chat, a text message, an email or a crypto pitch. Pause looks for the scripts scammers follow around the
           world, quotes the warning signs, and tells you what to do, in your language.
         </p>
+        </div>
+        <Photo name="thinking" alt="A young woman wondering whether a message is genuine" ratio="4 / 5" pos="center 35%" priority />
       </section>
 
       <section className="check-box">

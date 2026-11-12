@@ -92,7 +92,19 @@ const interviews = new Map<number, Interview>();
 
 // ---------------------------------------------------------------- commands
 
+const CALL_HELP = [
+  "<b>Talk to Pause.</b>",
+  "",
+  "Hold the microphone button at the bottom right, say what happened in your own words, and let go. I'll write down what I heard and tell you whether it looks like a scam and what to do.",
+  "",
+  "You can speak in your own language. If you can't record, just type it.",
+].join("\n");
+
+bot.command("call", (ctx) => ctx.reply(CALL_HELP, { parse_mode: "HTML" }));
+
 bot.command("start", (ctx) =>
+  // t.me/<bot>?start=call opens straight into the voice instructions.
+  ctx.match === "call" ? ctx.reply(CALL_HELP, { parse_mode: "HTML" }) :
   ctx.reply(
     [
       "👋 <b>I'm Pause.</b> I help you spot romance and crypto scams before you send money.",
@@ -103,7 +115,7 @@ bot.command("start", (ctx) =>
       "",
       "<b>Talk to me:</b> send a voice message describing a call or text you received. I answer in your language.",
       "",
-      "/check — check what you've sent so far\n/new — start a fresh check\n/lang — choose your language\n/link — connect your NEAR account",
+      "/call — talk to me with a voice message\n/check — check what you've sent so far\n/new — start a fresh check\n/lang — choose your language\n/link — connect your NEAR account",
     ].join("\n"),
     { parse_mode: "HTML" },
   ),
@@ -160,6 +172,7 @@ bot.on("message:voice", async (ctx) => {
     const form = new FormData();
     form.append("file", new Blob([await audio.arrayBuffer()], { type: "audio/ogg" }), "voice.ogg");
     form.append("model", "openai/whisper-large-v3");
+    form.append("response_format", "verbose_json");
     const res = await fetch("https://cloud-api.near.ai/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${AI.apiKey}` },
@@ -167,8 +180,16 @@ bot.on("message:voice", async (ctx) => {
       signal: AbortSignal.timeout(45_000),
     });
     if (!res.ok) throw new Error(`transcription ${res.status}`);
-    const text = String((await res.json()).text ?? "").trim();
+    const heard = await res.json();
+    const text = String(heard.text ?? "").trim();
     if (text.length < 10) return ctx.reply("I couldn't hear enough words. Please try again, a little closer to the phone.");
+    // Answer in the language the person just spoke, when it is one Pause knows.
+    const detected = String(heard.language ?? "").toLowerCase();
+    // Whisper reports a code ("fr") or a name ("french") depending on the server.
+    const speaks = (l: (typeof LANGS)[number]) => detected.length === 2 ? l.id.slice(0, 2) === detected : detected.length > 2 && l.english.toLowerCase().includes(detected);
+    const current = LANGS.find((l) => l.id === store.langOf(ctx.chat.id));
+    const spoken = LANGS.find(speaks);
+    if (spoken && !(current && speaks(current))) store.setLang(ctx.chat.id, spoken.id);
     await send(ctx.chat.id, `<i>I heard:</i> ${esc(text.slice(0, 400))}`);
     await runCheck(ctx.chat.id, text);
   } catch (e) {

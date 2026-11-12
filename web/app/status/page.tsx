@@ -1,5 +1,6 @@
 "use client";
 
+import Photo from "@/components/Photo";
 import { useEffect, useState } from "react";
 
 interface Status {
@@ -25,8 +26,13 @@ export default function StatusPage() {
 
   return (
     <main id="main" className="wrap app-page narrow">
-      <h1>Status</h1>
-      <p className="lede">Everything a visitor depends on, checked live against NEAR testnet every twenty seconds.</p>
+      <header className="page-head slim">
+        <div>
+          <h1>Status</h1>
+          <p className="lede">Everything a visitor depends on, checked live against NEAR testnet every twenty seconds.</p>
+        </div>
+        <Photo name="grandad-phone" alt="An older man smiling as he uses his phone in an armchair" ratio="4 / 3" priority />
+      </header>
       {!status && !failed && <div className="skeleton" />}
       {failed && !status && <p className="notice bad">The status check itself didn&apos;t answer. Reload in a moment.</p>}
       {status && (

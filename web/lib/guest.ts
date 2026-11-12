@@ -131,6 +131,26 @@ export async function signInterview(secretKey: string, holdId: number, answers: 
 export async function closeGuest(g: GuestSet) {
   const { Account, JsonRpcProvider, KeyPairSigner } = await near();
   const provider = new JsonRpcProvider({ url: RPCS[0] });
+
+  // The vault has no withdraw, so what is left in it goes back the only way
+  // money can leave: instant payments to the trusted shop, which is the
+  // sponsor. Each is capped by the vault's instant limit and daily cap.
+  if (g.vaultReady && g.shop === g.sponsor) {
+    try {
+      for (let i = 0; i < 4; i++) {
+        const vault = (await provider.callFunction({ contractId: CONTRACT, method: "get_vault", args: { owner: g.owner } })) as { balance?: string } | null;
+        const left = BigInt(vault?.balance ?? "0");
+        const limit = BigInt(toYocto(GUEST.instantLimit));
+        const amount = left < limit ? left : limit;
+        if (amount < BigInt(toYocto("0.005"))) break;
+        const sent = await guestCall<{ outcome?: string }>(g.owner, g.ownerKey, "send", { receiver: g.shop, amount: amount.toString(), memo: null });
+        if (sent.value?.outcome !== "paid") break;
+      }
+    } catch {
+      // The daily cap was reached or testnet is slow; the rest stays in the vault.
+    }
+  }
+
   for (const [id, key] of [[g.owner, g.ownerKey], [g.guardian, g.guardianKey]] as const) {
     try {
       await new Account(id, provider, KeyPairSigner.fromSecretKey(key as `ed25519:${string}`)).deleteAccount(g.sponsor);

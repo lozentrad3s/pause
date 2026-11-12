@@ -1,5 +1,6 @@
 "use client";
 
+import Photo from "@/components/Photo";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -63,7 +64,8 @@ function VaultInner() {
   if (!viewing) {
     return (
       <main id="main" className="wrap app-page">
-        <section className="empty-hero">
+        <section className="empty-hero with-photo">
+          <div>
           <span className="empty-icon" aria-hidden><svg width="22" height="22" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" fill="currentColor" /><rect x="14" y="4" width="4" height="16" rx="1.5" fill="currentColor" /></svg></span>
           <h1>Your money, with a pause button.</h1>
           <p className="lede">Connect a NEAR testnet wallet to open your vault. Payments to people you trust go through instantly. Everything else waits for a quick check.</p>
@@ -71,6 +73,8 @@ function VaultInner() {
             <button className="btn primary" onClick={signIn} disabled={!ready}>Connect wallet</button>
             <Link className="btn" href={`/vault?view=${DEMO_OWNER}`}>See Amina&apos;s vault (demo)</Link>
           </div>
+        </div>
+          <Photo name="city-phone" alt="A woman in a green jacket checking her phone outside an office" ratio="1 / 1" pos="center" priority />
         </section>
       </main>
     );
@@ -279,7 +283,6 @@ function CreateVault({ onCreate, busy, toast }: { onCreate: (args: object, depos
   };
   return (
     <main id="main" className="wrap app-page narrow">
-      <p className="eyebrow">Step 1 of 1</p>
       <h1>Open your Pause vault</h1>
       <p className="lede">Takes a minute. You can add more guardians and trusted people later.</p>
       <form className="create-form" onSubmit={submit}>
