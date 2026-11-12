@@ -2,19 +2,19 @@ use super::*;
 use near_sdk::test_utils::VMContextBuilder;
 use near_sdk::testing_env;
 
-const DELAY: u64 = 300; // settings delay (5 minutes, like the demo)
-const HOLD: u64 = 120; // hold window
+pub(crate) const DELAY: u64 = 300; // settings delay (5 minutes, like the demo)
+pub(crate) const HOLD: u64 = 120; // hold window
 
-fn acc(s: &str) -> AccountId {
+pub(crate) fn acc(s: &str) -> AccountId {
     s.parse().unwrap()
 }
 
-fn near(n: u128) -> NearToken {
+pub(crate) fn near(n: u128) -> NearToken {
     NearToken::from_near(n)
 }
 
 /// Sets who is calling, what they attach and the time in seconds.
-fn ctx(caller: &str, deposit: NearToken, t: u64) {
+pub(crate) fn ctx(caller: &str, deposit: NearToken, t: u64) {
     let mut b = VMContextBuilder::new();
     b.current_account_id(acc("pause.testnet"))
         .predecessor_account_id(acc(caller))
@@ -24,19 +24,19 @@ fn ctx(caller: &str, deposit: NearToken, t: u64) {
     testing_env!(b.build());
 }
 
-fn call(caller: &str, t: u64) {
+pub(crate) fn call(caller: &str, t: u64) {
     ctx(caller, NearToken::from_yoctonear(0), t);
 }
 
 /// Contract plus amina's vault: guardian son, agent, trusted grocer.
-fn setup() -> Pause {
+pub(crate) fn setup() -> Pause {
     call("admin.testnet", 0);
     let mut c = Pause::new(acc("admin.testnet"), DELAY);
     open_vault(&mut c, "amina.testnet");
     c
 }
 
-fn open_vault(c: &mut Pause, owner: &str) {
+pub(crate) fn open_vault(c: &mut Pause, owner: &str) {
     ctx(owner, near(100), 0);
     c.create_vault(
         vec![acc("son.testnet")],
@@ -48,7 +48,7 @@ fn open_vault(c: &mut Pause, owner: &str) {
     );
 }
 
-fn balance(c: &Pause, owner: &str) -> NearToken {
+pub(crate) fn balance(c: &Pause, owner: &str) -> NearToken {
     c.get_vault(acc(owner)).unwrap().balance
 }
 
@@ -102,23 +102,131 @@ fn daily_cap_holds_extra_instant_payments() {
     assert_eq!(c.send(acc("grocer.testnet"), near(1), None).outcome, "paid");
 }
 
+/// Opens a vault for `owner` if needed, holds a payment to `receiver` and reports it.
+pub(crate) fn report_from(c: &mut Pause, owner: &str, receiver: &str, t: u64) {
+    if c.get_vault(acc(owner)).is_none() {
+        open_vault(c, owner);
+    }
+    call(owner, t);
+    let id = c.send(acc(receiver), near(1), None).hold_id.unwrap();
+    c.confirm_scam(id);
+}
+
 #[test]
-fn blocked_by_registry() {
+fn one_report_warns_and_holds_at_high_risk() {
     let mut c = setup();
     let id = hold_new_payee(&mut c, 50);
     call("amina.testnet", 20);
     c.confirm_scam(id);
     assert!(c.is_flagged(acc("scammer.testnet")));
+    assert!(!c.is_blocked(acc("scammer.testnet")));
+    assert_eq!(c.get_registry_status(acc("scammer.testnet")).level, "warned");
 
+    // Another vault paying the same receiver is held, High from the start.
     open_vault(&mut c, "bola.testnet");
-    let before = balance(&c, "bola.testnet");
     call("bola.testnet", 30);
     let r = c.send(acc("scammer.testnet"), near(10), None);
+    assert_eq!(r.outcome, "held");
+    let h = c.get_hold(r.hold_id.unwrap()).unwrap();
+    assert_eq!(h.risk, Risk::High);
+    assert_eq!(h.release_at, 30 + 2 * HOLD);
+    assert_eq!(c.get_stats().blocked_by_registry, 0);
+}
+
+#[test]
+#[should_panic(expected = "High-risk payment needs a guardian's approval")]
+fn warned_receiver_needs_guardian_to_release() {
+    let mut c = setup();
+    report_from(&mut c, "bola.testnet", "scammer.testnet", 5);
+    let id = hold_new_payee(&mut c, 10);
+    call("amina.testnet", 10 + MAX_HOLD_TOTAL_SECS);
+    let _ = c.release(id);
+}
+
+#[test]
+fn warned_receiver_is_never_instant_even_if_trusted() {
+    let mut c = setup();
+    // Bola pays the shop over her instant limit, so it is held, then reports it.
+    open_vault(&mut c, "bola.testnet");
+    call("bola.testnet", 5);
+    let id = c.send(acc("grocer.testnet"), near(6), None).hold_id.unwrap();
+    c.confirm_scam(id);
+    call("amina.testnet", 10);
+    let r = c.send(acc("grocer.testnet"), near(2), None);
+    assert_eq!(r.outcome, "held");
+    assert_eq!(c.get_hold(r.hold_id.unwrap()).unwrap().risk, Risk::High);
+}
+
+#[test]
+fn blocked_after_three_different_vaults_report() {
+    let mut c = setup();
+    report_from(&mut c, "amina.testnet", "scammer.testnet", 10);
+    report_from(&mut c, "bola.testnet", "scammer.testnet", 11);
+    assert!(!c.is_blocked(acc("scammer.testnet")));
+    report_from(&mut c, "chidi.testnet", "scammer.testnet", 12);
+    assert!(c.is_blocked(acc("scammer.testnet")));
+    assert_eq!(c.get_registry_status(acc("scammer.testnet")).level, "blocked");
+
+    open_vault(&mut c, "dayo.testnet");
+    let before = balance(&c, "dayo.testnet");
+    call("dayo.testnet", 30);
+    let r = c.send(acc("scammer.testnet"), near(10), None);
     assert_eq!(r.outcome, "blocked");
-    // Nothing left bola's vault except the record's storage.
-    assert!(balance(&c, "bola.testnet") > before.saturating_sub(near(1)));
+    // Nothing left dayo's vault except the record's storage.
+    assert!(balance(&c, "dayo.testnet") > before.saturating_sub(near(1)));
     assert_eq!(c.get_hold(r.hold_id.unwrap()).unwrap().status, HoldStatus::Blocked);
     assert_eq!(c.get_stats().blocked_by_registry, 1);
+}
+
+#[test]
+#[should_panic(expected = "This vault already reported this receiver")]
+fn one_vault_counts_once_per_receiver() {
+    let mut c = setup();
+    report_from(&mut c, "amina.testnet", "scammer.testnet", 10);
+    report_from(&mut c, "amina.testnet", "scammer.testnet", 11);
+}
+
+#[test]
+#[should_panic(expected = "This vault already reported this receiver")]
+fn owner_and_guardian_of_one_vault_still_count_once() {
+    let mut c = setup();
+    let first = hold_new_payee(&mut c, 5);
+    let second = hold_new_payee(&mut c, 5);
+    call("amina.testnet", 20);
+    c.confirm_scam(first);
+    call("son.testnet", 21);
+    c.confirm_scam(second);
+}
+
+#[test]
+fn cancelled_or_vetoed_hold_can_be_reported_later() {
+    let mut c = setup();
+    let id = hold_new_payee(&mut c, 50);
+    call("son.testnet", 20);
+    c.veto(id);
+    call("amina.testnet", 25);
+    c.confirm_scam(id);
+    assert_eq!(c.get_hold(id).unwrap().status, HoldStatus::Vetoed);
+    assert_eq!(c.get_registry_entry(acc("scammer.testnet")).unwrap().reports, 1);
+}
+
+#[test]
+#[should_panic(expected = "Only a held, cancelled or vetoed payment can be reported")]
+fn released_payment_cannot_be_reported() {
+    let mut c = setup();
+    let id = hold_new_payee(&mut c, 50);
+    call("amina.testnet", 10 + HOLD);
+    let _ = c.release(id);
+    c.confirm_scam(id);
+}
+
+#[test]
+#[should_panic(expected = "Only the owner or a guardian can confirm a scam")]
+fn stranger_cannot_report() {
+    let mut c = setup();
+    let id = hold_new_payee(&mut c, 50);
+    call("scammer.testnet", 11);
+    c.confirm_scam(id);
 }
 
 #[test]
@@ -281,15 +389,15 @@ fn owner_releases_after_window() {
 }
 
 #[test]
-fn release_blocked_if_receiver_reported_while_waiting() {
+fn release_blocked_if_receiver_blocked_while_waiting() {
     let mut c = setup();
-    let first = hold_new_payee(&mut c, 10);
-    let second = hold_new_payee(&mut c, 10);
-    call("son.testnet", 20);
-    c.confirm_scam(first);
+    let waiting = hold_new_payee(&mut c, 10);
+    report_from(&mut c, "bola.testnet", "scammer.testnet", 20);
+    report_from(&mut c, "chidi.testnet", "scammer.testnet", 21);
+    report_from(&mut c, "dayo.testnet", "scammer.testnet", 22);
     call("amina.testnet", 10 + HOLD);
-    let _ = c.release(second);
-    assert_eq!(c.get_hold(second).unwrap().status, HoldStatus::Blocked);
+    let _ = c.release(waiting);
+    assert_eq!(c.get_hold(waiting).unwrap().status, HoldStatus::Blocked);
 }
 
 #[test]

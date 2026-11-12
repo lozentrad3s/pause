@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { Lang } from "../../web/lib/i18n";
 
 const FILE = resolve(dirname(fileURLToPath(import.meta.url)), "../data/state.json");
 
@@ -18,9 +19,10 @@ interface State {
   links: Record<string, string>; // chatId -> NEAR account
   flags: Record<string, Flag>; // receiver address -> why it was flagged
   handled: number[]; // hold ids already processed
+  langs: Record<string, Lang>; // chatId -> language Pause answers in
 }
 
-let state: State = { links: {}, flags: {}, handled: [] };
+let state: State = { links: {}, flags: {}, handled: [], langs: {} };
 if (existsSync(FILE)) state = { ...state, ...JSON.parse(readFileSync(FILE, "utf8")) };
 
 function save() {
@@ -34,6 +36,11 @@ export const store = {
     save();
   },
   accountOf: (chatId: number) => state.links[String(chatId)],
+  setLang(chatId: number, lang: Lang) {
+    state.langs[String(chatId)] = lang;
+    save();
+  },
+  langOf: (chatId: number): Lang => state.langs[String(chatId)] ?? "en",
   chatsOf: (account: string) => Object.entries(state.links).filter(([, a]) => a === account).map(([c]) => Number(c)),
   linkedAccounts: () => [...new Set(Object.values(state.links))],
   flag(address: string, f: Flag) {

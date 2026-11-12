@@ -1,23 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { STAGES, type Analysis } from "@/lib/analyzer";
+import ProofBadge from "@/components/ProofBadge";
+import { SCAM_NAMES, STAGES, type Analysis } from "@/lib/analyzer";
+import { CASES } from "@/lib/cases";
+import { LANGS, type Lang } from "@/lib/i18n";
 import { PLATFORMS, STORIES, storyAsText, type Platform } from "@/lib/stories";
-
-const TYPE_LABEL: Record<string, string> = {
-  romance: "Romance scam",
-  investment: "Investment scam",
-  romance_investment: "Romance + crypto investment scam",
-  impersonation: "Impersonation scam",
-  family_emergency: "Family emergency scam",
-  job: "Job or task scam",
-  other: "Possible scam",
-  none: "No scam pattern",
-};
 
 export default function CheckPage() {
   const [chat, setChat] = useState("");
   const [platform, setPlatform] = useState<Platform>("WhatsApp");
+  const [lang, setLang] = useState<Lang>("en");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [res, setRes] = useState<Analysis | null>(null);
@@ -30,7 +23,7 @@ export default function CheckPage() {
       const r = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat, platform }),
+        body: JSON.stringify({ chat, platform, lang }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Something went wrong");
@@ -47,32 +40,38 @@ export default function CheckPage() {
   const stageIdx = v ? STAGES.findIndex((s) => s.id === v.stage) : -1;
 
   return (
-    <main className="check-page wrap">
+    <main id="main" className="check-page wrap">
 
       <section className="check-hero">
-        <p className="eyebrow">Free chat check</p>
-        <h1>Is this person real?</h1>
+        <h1>Is this a scam?</h1>
         <p className="lede">
-          Paste a conversation from WhatsApp, Instagram, Facebook, TikTok, X or a dating app. Pause looks for the patterns
-          romance and crypto scammers follow, and explains what it finds in plain words.
+          Paste a chat, a text message, an email or a crypto pitch. Pause looks for the scripts scammers follow around the
+          world, quotes the warning signs, and tells you what to do, in your language.
         </p>
       </section>
 
       <section className="check-box">
-        <div className="check-row">
-          <div className="seg seg-wrap" role="group" aria-label="Where did you meet?">
+        <div className="check-tools">
+          <div className="seg seg-wrap" role="group" aria-label="Where is it from?">
             {PLATFORMS.map((p) => (
-              <button key={p.id} className={platform === p.id ? "on" : ""} onClick={() => setPlatform(p.id)}>{p.id}</button>
+              <button key={p.id} className={platform === p.id ? "on" : ""} aria-pressed={platform === p.id} onClick={() => setPlatform(p.id)}>{p.id}</button>
             ))}
           </div>
-          <div className="examples">
-            <span className="muted small">Try an example:</span>
-            {STORIES.map((s) => (
-              <button key={s.id} className="chip" onClick={() => { setChat(storyAsText(s, platform)); setRes(null); }}>
-                {s.title}
-              </button>
-            ))}
-          </div>
+          <label>
+            <span className="sr-only">Answer in</span>
+            <select value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+              {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="examples" style={{ marginBottom: 12 }}>
+          <span className="muted small">Try a real script:</span>
+          {STORIES.filter((s) => s.scam).slice(0, 1).map((s) => (
+            <button key={s.id} className="chip" onClick={() => { setChat(storyAsText(s, platform)); setRes(null); }}>{s.title}</button>
+          ))}
+          {CASES.filter((c) => ["C1", "C2", "C5", "C9", "C10", "G1"].includes(c.id)).map((c) => (
+            <button key={c.id} className="chip" onClick={() => { setChat(c.text); setRes(null); }}>{c.title}</button>
+          ))}
         </div>
         <label htmlFor="chat" className="sr-only">Chat to check</label>
         <textarea
@@ -83,9 +82,9 @@ export default function CheckPage() {
           rows={11}
         />
         <div className="check-actions">
-          <p className="muted small">Checked in private AI hardware on NEAR AI Cloud. Never stored, never shared.</p>
+          <p className="muted small">Checked by a private model on NEAR AI Cloud. Never stored, never shared.</p>
           <button className="btn primary" onClick={analyse} disabled={busy || chat.trim().length < 10}>
-            {busy ? "Checking…" : "Check this chat"}
+            {busy ? "Checking…" : "Check this"}
           </button>
         </div>
         {error && <p className="error">{error}</p>}
@@ -105,7 +104,7 @@ export default function CheckPage() {
               <span>/100</span>
             </div>
             <div>
-              <p className="eyebrow">{v.level === "Safe" ? "Looks safe" : `${v.level} risk`} · {TYPE_LABEL[v.scam_type] ?? "Possible scam"}</p>
+              <p className="report-kicker">{v.level === "Safe" ? "Looks safe" : `${v.level} risk`} · {SCAM_NAMES[v.scam_type] ?? "Possible scam"}</p>
               <h2>{v.summary}</h2>
             </div>
           </div>
@@ -152,9 +151,9 @@ export default function CheckPage() {
             </div>
           )}
 
+          <div style={{ marginTop: 20 }}><ProofBadge analysis={res} /></div>
           <p className="muted small report-foot">
-            {res.source === "ai" ? `Private AI verdict (${res.model}) checked against ${res.rules.hits.length} fixed rules` : `Fixed rules only (${res.rules.hits.length} signals)`}
-            {" · "}{res.messages} messages read. Pause can be wrong. When in doubt, talk to someone you trust.
+            {res.rules.hits.length} fixed-rule signals · {res.messages} messages read. Pause can be wrong. When in doubt, talk to someone you trust.
           </p>
         </section>
       )}

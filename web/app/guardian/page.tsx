@@ -11,7 +11,7 @@ const DEMO_GUARDIAN = "son.pause-demo.testnet";
 
 export default function GuardianPage() {
   return (
-    <Suspense fallback={<main className="wrap app-page"><p className="muted">Loading…</p></main>}>
+    <Suspense fallback={<main id="main" className="wrap app-page"><p className="muted">Loading…</p></main>}>
       <GuardianInner />
     </Suspense>
   );
@@ -59,7 +59,7 @@ function GuardianInner() {
 
   if (!viewing) {
     return (
-      <main className="wrap app-page">
+      <main id="main" className="wrap app-page">
         <section className="empty-hero">
           <span className="empty-icon" aria-hidden><svg width="22" height="22" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" fill="currentColor" /><rect x="14" y="4" width="4" height="16" rx="1.5" fill="currentColor" /></svg></span>
           <h1>Look out for the people you love.</h1>
@@ -77,7 +77,7 @@ function GuardianInner() {
   const urgent = pending.filter((h) => h.risk === "High");
 
   return (
-    <main className="wrap app-page">
+    <main id="main" className="wrap app-page">
       {readOnly && (
         <div className="banner">
           Viewing <b>{viewing}</b> read-only.{" "}

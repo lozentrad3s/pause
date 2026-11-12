@@ -5,6 +5,10 @@
 //! - agent: records a risk verdict and can extend holds. Nothing else.
 //! - guardians (max 3): can extend, approve early, veto, or confirm a scam.
 //!
+//! The scam registry is graded: a receiver reported by one vault is a warning
+//! (payments to it are held at High risk), and a receiver reported by three
+//! different vaults is blocked for everyone.
+//!
 //! Money only ever goes to the receiver the owner named, or back into the vault.
 
 use near_sdk::serde_json::{self, json};
@@ -19,6 +23,8 @@ pub const MAX_TRUSTED_PAYEES: usize = 50;
 pub const MAX_HOLD_TOTAL_SECS: u64 = 7 * 24 * 60 * 60;
 pub const DAY_SECS: u64 = 24 * 60 * 60;
 pub const MAX_MEMO_LEN: usize = 280;
+/// Reports from this many different vaults turn a warning into a hard block.
+pub const BLOCK_REPORTS: u32 = 3;
 const CALLBACK_GAS: Gas = Gas::from_tgas(10);
 
 #[near]
@@ -27,6 +33,9 @@ enum StorageKey {
     Vaults,
     Holds,
     Registry,
+    /// One marker per (receiver, reporting vault), written straight to storage
+    /// so the upgrade needs no state migration.
+    Reporters,
 }
 
 #[near(serializers = [borsh, json])]
@@ -122,6 +131,19 @@ pub struct Stats {
     pub holds_created: u64,
     pub blocked_by_registry: u64,
     pub scams_confirmed: u64,
+}
+
+/// Where a receiver stands in the shared registry.
+#[near(serializers = [json])]
+#[derive(Clone, Debug, PartialEq)]
+pub struct RegistryStatus {
+    pub receiver: AccountId,
+    /// Number of different vaults that reported this receiver.
+    pub reports: u32,
+    /// "clear", "warned" (1 or 2 reports) or "blocked" (3 or more).
+    pub level: String,
+    pub scam_type: Option<String>,
+    pub block_at: u32,
 }
 
 /// What `send` did with a payment.
@@ -249,8 +271,9 @@ impl Pause {
         emit("deposit", json!({ "owner": owner, "amount": amount, "balance": vault.balance }));
     }
 
-    /// Registry hit: blocked. Trusted payee under the limits: paid at once.
-    /// Anything else: a new hold.
+    /// Receiver reported by 3+ vaults: blocked. Reported by 1 or 2: held at
+    /// High risk. Trusted payee under the limits: paid at once. Anything
+    /// else: a new hold.
     pub fn send(
         &mut self,
         receiver: AccountId,
@@ -267,17 +290,50 @@ impl Pause {
         require!(vault.balance >= amount, "Not enough balance in the vault");
         let now = now_secs();
 
-        // 1. Shared scam registry.
-        if let Some(entry) = self.registry.get(&receiver) {
-            let scam_type = entry.scam_type.clone();
+        // 1. Shared scam registry. Three or more vaults reported it: blocked.
+        let reports = self.registry.get(&receiver).map(|e| e.reports).unwrap_or(0);
+        let registry_type = self.registry.get(&receiver).and_then(|e| e.scam_type.clone());
+        if reports >= BLOCK_REPORTS {
             let id = self.store_hold(&mut vault, receiver.clone(), amount, memo, HoldStatus::Blocked, 0);
             self.stats.blocked_by_registry += 1;
             emit(
                 "blocked_by_registry",
-                json!({ "hold_id": id, "owner": owner, "receiver": receiver, "amount": amount, "scam_type": scam_type }),
+                json!({ "hold_id": id, "owner": owner, "receiver": receiver, "amount": amount, "scam_type": registry_type, "reports": reports }),
             );
             self.vaults.insert(owner, vault);
             return SendResult { outcome: "blocked".into(), hold_id: Some(id), release_at: None };
+        }
+
+        // One or two reports: a warning. The payment is never instant, starts
+        // at High risk with a doubled window, and guardians are told at once.
+        if reports > 0 {
+            vault.balance = vault.balance.saturating_sub(amount);
+            let release_at = now + (2 * vault.hold_secs).min(MAX_HOLD_TOTAL_SECS);
+            let id = self.store_hold(&mut vault, receiver.clone(), amount, memo.clone(), HoldStatus::Pending, release_at);
+            let h = self.holds.get_mut(&id).unwrap();
+            h.risk = Risk::High;
+            h.scam_type = registry_type.clone();
+            self.stats.holds_created += 1;
+            emit(
+                "hold_created",
+                json!({
+                    "hold_id": id, "owner": owner, "receiver": receiver, "amount": amount,
+                    "memo": memo, "release_at": release_at, "guardians": vault.guardians,
+                }),
+            );
+            emit(
+                "registry_warning",
+                json!({ "hold_id": id, "owner": owner, "receiver": receiver, "reports": reports, "scam_type": registry_type }),
+            );
+            emit(
+                "guardian_alert",
+                json!({
+                    "hold_id": id, "owner": owner, "receiver": receiver, "amount": amount,
+                    "scam_type": registry_type, "guardians": vault.guardians,
+                }),
+            );
+            self.vaults.insert(owner, vault);
+            return SendResult { outcome: "held".into(), hold_id: Some(id), release_at: Some(release_at) };
         }
 
         // 2. Trusted payee under the instant limit and daily cap.
@@ -337,8 +393,8 @@ impl Pause {
             require!(hold.guardian_approved, "High-risk payment needs a guardian's approval");
         }
 
-        // The receiver may have been reported while the payment waited.
-        if self.registry.get(&hold.receiver).is_some() {
+        // The receiver may have been blocked while the payment waited.
+        if self.registry.get(&hold.receiver).map(|e| e.reports).unwrap_or(0) >= BLOCK_REPORTS {
             self.close_and_refund(hold_id, HoldStatus::Blocked);
             self.stats.blocked_by_registry += 1;
             emit(
@@ -444,17 +500,32 @@ impl Pause {
         emit("hold_vetoed", json!({ "hold_id": hold_id, "owner": hold.owner, "by": caller }));
     }
 
-    /// Owner or guardian: cancels the hold and adds the receiver to the
-    /// shared registry, so every vault blocks it from now on.
+    /// Owner or guardian: reports the receiver of a hold as a scam. A pending
+    /// hold is cancelled first; a hold the owner already cancelled or a
+    /// guardian already vetoed can be reported afterwards. Released, blocked
+    /// and unknown holds can't be reported, so nobody can blacklist an account
+    /// they never tried to pay.
+    ///
+    /// Each vault counts once per receiver. One report warns every vault;
+    /// reports from `BLOCK_REPORTS` different vaults block the receiver.
     pub fn confirm_scam(&mut self, hold_id: u64) {
-        let hold = self.pending_hold(hold_id);
+        let hold = self.holds.get(&hold_id).cloned().unwrap_or_else(|| env::panic_str("No such hold"));
         let caller = env::predecessor_account_id();
         let vault = self.vault(&hold.owner);
         require!(
             caller == hold.owner || vault.guardians.contains(&caller),
             "Only the owner or a guardian can confirm a scam"
         );
-        self.close_and_refund(hold_id, HoldStatus::Cancelled);
+        require!(
+            matches!(hold.status, HoldStatus::Pending | HoldStatus::Cancelled | HoldStatus::Vetoed),
+            "Only a held, cancelled or vetoed payment can be reported"
+        );
+        let marker = Self::reporter_key(&hold.receiver, &hold.owner);
+        require!(!env::storage_has_key(&marker), "This vault already reported this receiver");
+        env::storage_write(&marker, &[1]);
+        if hold.status == HoldStatus::Pending {
+            self.close_and_refund(hold_id, HoldStatus::Cancelled);
+        }
 
         let entry = match self.registry.get(&hold.receiver) {
             Some(e) => RegistryEntry {
@@ -477,6 +548,7 @@ impl Pause {
             json!({
                 "hold_id": hold_id, "owner": hold.owner, "receiver": hold.receiver,
                 "scam_type": hold.scam_type, "reports": reports, "by": caller,
+                "level": if reports >= BLOCK_REPORTS { "blocked" } else { "warned" },
             }),
         );
     }
@@ -643,8 +715,33 @@ impl Pause {
         self.holds.get(&hold_id).cloned()
     }
 
+    /// True once any vault has reported this receiver (warned or blocked).
     pub fn is_flagged(&self, receiver: AccountId) -> bool {
         self.registry.get(&receiver).is_some()
+    }
+
+    /// True once `BLOCK_REPORTS` different vaults have reported this receiver.
+    pub fn is_blocked(&self, receiver: AccountId) -> bool {
+        self.registry.get(&receiver).map(|e| e.reports).unwrap_or(0) >= BLOCK_REPORTS
+    }
+
+    pub fn get_registry_status(&self, receiver: AccountId) -> RegistryStatus {
+        let entry = self.registry.get(&receiver);
+        let reports = entry.map(|e| e.reports).unwrap_or(0);
+        let level = if reports >= BLOCK_REPORTS {
+            "blocked"
+        } else if reports > 0 {
+            "warned"
+        } else {
+            "clear"
+        };
+        RegistryStatus {
+            receiver,
+            reports,
+            level: level.into(),
+            scam_type: entry.and_then(|e| e.scam_type.clone()),
+            block_at: BLOCK_REPORTS,
+        }
     }
 
     pub fn get_registry_entry(&self, receiver: AccountId) -> Option<RegistryEntry> {
@@ -689,7 +786,11 @@ impl Pause {
     }
 
     pub fn get_config(&self) -> serde_json::Value {
-        json!({ "admin": self.admin, "settings_delay_secs": self.settings_delay_secs })
+        json!({
+            "admin": self.admin,
+            "settings_delay_secs": self.settings_delay_secs,
+            "block_reports": BLOCK_REPORTS,
+        })
     }
 }
 
@@ -699,6 +800,14 @@ impl Pause {
     fn storage_cost(before: u64) -> NearToken {
         let used = env::storage_usage().saturating_sub(before);
         env::storage_byte_cost().saturating_mul(used as u128)
+    }
+
+    fn reporter_key(receiver: &AccountId, owner: &AccountId) -> Vec<u8> {
+        let mut key = near_sdk::borsh::to_vec(&StorageKey::Reporters).unwrap();
+        key.extend_from_slice(receiver.as_bytes());
+        key.push(b'|');
+        key.extend_from_slice(owner.as_bytes());
+        key
     }
 
     fn vault(&self, owner: &AccountId) -> &Vault {
@@ -802,3 +911,6 @@ impl Pause {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod scenarios;

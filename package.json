@@ -1,0 +1,26 @@
+{
+  "name": "pause",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Pause: a scam firewall for your family's money, on NEAR",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "postinstall": "npm --prefix web install --no-audit --no-fund",
+    "judge": "tsx scripts/judge.ts",
+    "suite": "tsx scripts/judge.ts --write-readme",
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "test": "tsx scripts/judge.ts",
+    "agent": "npm --prefix agent install --no-audit --no-fund && npm --prefix agent run start",
+    "ai-check": "tsx scripts/ai-check.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

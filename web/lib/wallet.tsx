@@ -1,10 +1,16 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import type { WalletSelector } from "@near-wallet-selector/core";
-import type { WalletSelectorModal } from "@near-wallet-selector/modal-ui";
-import "@near-wallet-selector/modal-ui/styles.css";
+// Wallet connection through NEAR Connect (@hot-labs/near-connect), which
+// replaces the deprecated NEAR Wallet Selector. Judges don't need a wallet:
+// the /demo page signs with guest keys made in the browser (see guest.ts).
+
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import type { NearConnector } from "@hot-labs/near-connect";
 import { CONTRACT, NETWORK } from "./near";
+
+export interface TxResult {
+  hash: string | null;
+}
 
 interface WalletCtx {
   ready: boolean;
@@ -12,64 +18,61 @@ interface WalletCtx {
   signIn: () => void;
   signOut: () => Promise<void>;
   /** Signs a call to the Pause contract. Deposit and gas are in yocto / gas units. */
-  call: (method: string, args?: object, deposit?: string, gas?: string) => Promise<unknown>;
+  call: (method: string, args?: object, deposit?: string, gas?: string) => Promise<TxResult>;
 }
 
 const Ctx = createContext<WalletCtx | null>(null);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [selector, setSelector] = useState<WalletSelector | null>(null);
-  const [modal, setModal] = useState<WalletSelectorModal | null>(null);
+  const connector = useRef<NearConnector | null>(null);
+  const [ready, setReady] = useState(false);
   const [accountId, setAccountId] = useState<string | null>(null);
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    let cancelled = false;
     (async () => {
-      const [{ setupWalletSelector }, { setupModal }, mnw, meteor, here, intear] = await Promise.all([
-        import("@near-wallet-selector/core"),
-        import("@near-wallet-selector/modal-ui"),
-        import("@near-wallet-selector/my-near-wallet"),
-        import("@near-wallet-selector/meteor-wallet"),
-        import("@near-wallet-selector/here-wallet"),
-        import("@near-wallet-selector/intear-wallet"),
-      ]);
-      const sel = await setupWalletSelector({
-        network: NETWORK,
-        modules: [mnw.setupMyNearWallet(), meteor.setupMeteorWallet(), here.setupHereWallet(), intear.setupIntearWallet()],
-      });
-      const m = setupModal(sel, { contractId: CONTRACT, description: "Connect the wallet that owns or guards a Pause vault." });
-      const sync = () => setAccountId(sel.store.getState().accounts.find((a) => a.active)?.accountId ?? null);
-      sync();
-      const sub = sel.store.observable.subscribe(sync);
-      unsub = () => sub.unsubscribe();
-      setSelector(sel);
-      setModal(m);
-    })().catch((e) => console.error("wallet selector", e));
-    return () => unsub?.();
+      const { NearConnector } = await import("@hot-labs/near-connect");
+      if (cancelled) return;
+      const c = new NearConnector({ network: NETWORK });
+      c.on("wallet:signIn", (t) => setAccountId(t.accounts[0]?.accountId ?? null));
+      c.on("wallet:signOut", () => setAccountId(null));
+      connector.current = c;
+      // Restore an earlier session, if the wallet kept one.
+      try {
+        const existing = await c.getConnectedWallet();
+        if (!cancelled && existing?.accounts?.[0]) setAccountId(existing.accounts[0].accountId);
+      } catch {
+        // Not connected yet.
+      }
+      if (!cancelled) setReady(true);
+    })().catch((e) => console.error("NEAR Connect", e));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const signIn = useCallback(() => modal?.show(), [modal]);
+  const signIn = useCallback(() => {
+    connector.current?.connect().catch(() => {
+      // The person closed the wallet list. Nothing to do.
+    });
+  }, []);
 
   const signOut = useCallback(async () => {
-    if (!selector) return;
-    const w = await selector.wallet();
-    await w.signOut();
+    await connector.current?.disconnect().catch(() => {});
     setAccountId(null);
-  }, [selector]);
+  }, []);
 
-  const call = useCallback(
-    async (method: string, args: object = {}, deposit = "0", gas = "60000000000000") => {
-      if (!selector) throw new Error("Wallet not ready");
-      const [w, { actionCreators }] = await Promise.all([selector.wallet(), import("@near-wallet-selector/core")]);
-      return w.signAndSendTransaction({
-        receiverId: CONTRACT,
-        actions: [actionCreators.functionCall(method, args, BigInt(gas), BigInt(deposit))],
-      });
-    },
-    [selector],
-  );
+  const call = useCallback(async (method: string, args: object = {}, deposit = "0", gas = "60000000000000") => {
+    if (!connector.current) throw new Error("The wallet is still loading. Try again in a moment.");
+    const wallet = await connector.current.wallet();
+    const outcome = await wallet.signAndSendTransaction({
+      receiverId: CONTRACT,
+      actions: [{ type: "FunctionCall", params: { methodName: method, args, gas, deposit } }],
+    });
+    return { hash: (outcome as { transaction?: { hash?: string } })?.transaction?.hash ?? null };
+  }, []);
 
-  return <Ctx.Provider value={{ ready: !!selector, accountId, signIn, signOut, call }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ ready, accountId, signIn, signOut, call }}>{children}</Ctx.Provider>;
 }
 
 export function useWallet() {

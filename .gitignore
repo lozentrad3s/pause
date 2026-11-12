@@ -8,3 +8,4 @@ node_modules/
 neardev/
 .near-credentials/
 agent/data/
+*.tsbuildinfo

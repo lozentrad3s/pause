@@ -3,7 +3,6 @@
 export const NETWORK = "testnet";
 export const CONTRACT = process.env.NEXT_PUBLIC_PAUSE_CONTRACT || "pause.pause-demo.testnet";
 export const AGENT = process.env.NEXT_PUBLIC_AGENT_ACCOUNT || "agent.pause-demo.testnet";
-const RPC = "https://rpc.testnet.near.org";
 export const EXPLORER = "https://testnet.nearblocks.io";
 
 export type HoldStatus = "Pending" | "Released" | "Cancelled" | "Vetoed" | "Blocked";
@@ -51,27 +50,50 @@ export interface Stats {
   scams_confirmed: number;
 }
 
-export async function view<T>(method: string, args: Record<string, unknown> = {}): Promise<T> {
-  const res = await fetch(RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: "pause",
-      method: "query",
-      params: {
-        request_type: "call_function",
-        finality: "optimistic",
-        account_id: CONTRACT,
-        method_name: method,
-        args_base64: btoa(JSON.stringify(args)),
-      },
-    }),
-  });
-  const data = await res.json();
-  if (data.error || data.result?.error) throw new Error(data.error?.data ?? data.result.error);
-  return JSON.parse(new TextDecoder().decode(new Uint8Array(data.result.result)));
+export const RPCS = ["https://test.rpc.fastnear.com", "https://rpc.testnet.near.org"];
+
+export interface RegistryStatus {
+  receiver: string;
+  reports: number;
+  level: "clear" | "warned" | "blocked";
+  scam_type: string | null;
+  block_at: number;
 }
+
+/** JSON-RPC with one fallback endpoint, so a rate limit doesn't blank the page. */
+export async function rpc<T>(method: string, params: unknown): Promise<T> {
+  let last: unknown = new Error("No RPC endpoint answered");
+  for (const url of RPCS) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: "pause", method, params }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.data ?? data.error.message ?? "RPC error");
+      if (data.result?.error) throw new Error(data.result.error);
+      return data.result as T;
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last;
+}
+
+export async function view<T>(method: string, args: Record<string, unknown> = {}, contract = CONTRACT): Promise<T> {
+  const result = await rpc<{ result: number[] }>("query", {
+    request_type: "call_function",
+    finality: "optimistic",
+    account_id: contract,
+    method_name: method,
+    args_base64: btoa(JSON.stringify(args)),
+  });
+  return JSON.parse(new TextDecoder().decode(new Uint8Array(result.result)));
+}
+
+export const txUrl = (hash: string) => `${EXPLORER}/txns/${hash}`;
+export const accountUrl = (id: string) => `${EXPLORER}/address/${id}`;
 
 // ----------------------------------------------------------------- amounts
 
@@ -111,14 +133,4 @@ export function duration(secs: number): string {
   return `${secs} seconds`;
 }
 
-export const SCAM_NAMES: Record<string, string> = {
-  romance: "Romance scam",
-  investment: "Investment scam",
-  romance_investment: "Romance + crypto scam",
-  impersonation: "Impersonation",
-  government_impersonation: "Government impersonation",
-  family_emergency: "Family emergency",
-  fake_withdrawal_fee: "Fake withdrawal fee",
-  job: "Job or task scam",
-  other: "Suspected scam",
-};
+export { SCAM_NAMES } from "./analyzer";

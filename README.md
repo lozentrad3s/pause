@@ -4,130 +4,206 @@
 
 Every team here built a firewall so AI agents can't be scammed. We built one for your mother.
 
-Romance and crypto scammers meet people on WhatsApp, Instagram, Facebook, TikTok and X, build trust for weeks, then ask for money in a hurry. Pause gives the victim three chances to stop it:
+Scammers don't hack the phone, they hack the person: "your bank account is compromised, move your money now", "Hi Mum, this is my new number", "the presale closes in an hour". The payment is sent by the real owner from their real device, so nothing looks wrong to a bank or a wallet. Pause gives that person three chances to stop:
 
-1. **Check any chat.** Paste or forward a conversation. Fixed rules plus a private AI on NEAR AI Cloud find the warning signs, name the scam stage, and quote the exact messages.
-2. **Warned before paying.** Wallet addresses from a risky chat are remembered.
-3. **Paused if they pay anyway.** The Pause contract holds risky payments, an agent interviews the owner on Telegram, and family guardians can step in. The agent's NEAR key can't move money.
+1. **Ask first.** Say or paste what happened, in your own language. A private AI on NEAR AI Cloud names the scam, quotes the warning signs and says what to do.
+2. **Paused if you pay anyway.** The Pause contract holds risky payments. An agent asks the six questions scammers coach victims to lie about. The agent's NEAR key cannot move money.
+3. **Family steps in.** Up to three guardians can stop a held payment. One family's report warns every other vault; three reports block the receiver for everyone.
 
-Contract: [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Telegram agent: [@Pausenearai_bot](https://t.me/Pausenearai_bot) · Tracks: AI Security & Defense, Privacy & Private AI, Real-World Money, Social Money
-
-## The problem
-
-Americans reported **$20.9B** lost to online scams in 2025, **$11.3B** of it involving crypto, and **$7.7B** from people aged 60 and over (FBI IC3 2025). Banks check the payment; scammers work on the person. The money is sent by the real owner from their real phone, so nothing looks wrong. What is wrong is the situation: urgency, isolation, and love or authority used as pressure.
+Contract: [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Telegram agent: [@Pausenearai_bot](https://t.me/Pausenearai_bot) · Tracks: Social Money, Privacy & Private AI, Real-World Money, AI Security & Defense
 
 ## Try it in 3 minutes, no wallet or keys needed
 
+Needs Node 20.12 or newer. Rust is optional (it adds the contract checks).
+
 ```bash
-git clone https://github.com/lozentrad3s/pause && cd pause/web
+git clone https://github.com/lozentrad3s/pause && cd pause
 npm install
+npm run judge
+```
+
+→ You see three groups of checks, each line `PASS` or `FAIL`, ending with a line like `42 checks passed, 0 failed`:
+
+1. **Scam scripts.** 13 real scripts from different countries (fake bank call, "Hi Mum", tax office warrant, parcel text, paid tasks, pig butchering, meme-coin presale, wallet drainer, giveaway…) and 5 genuine messages go through the fixed rules. Every scam must reach its expected level; no genuine message may be flagged.
+2. **Contract.** `cargo test` runs 44 unit tests and the ten scenarios S1–S10 against the real contract code. Without Rust this group is skipped and the run says so.
+3. **Live testnet, read-only.** The deployed contract answers, the graded registry is live, and the agent's key on chain is limited to `set_risk` and `extend_hold`. `OFFLINE=1 npm run judge` skips this group.
+
+Then open the site:
+
+```bash
 npm run dev
 ```
 
 Open http://localhost:3000.
 
-1. **The phone simulator** starts when you scroll to it.
-   → You see "Daniel" text "Grace" over 16 days. Pause's risk meter rises with each warning sign (moved to Telegram, avoids video, secrecy, a customs fee). When he asks for 30 NEAR a warning sheet slides up, and when she pays anyway the payment is **held** and her son alerted.
-   Switch the story to **Real friend**: no alerts, paid instantly. Switch the app between WhatsApp, Instagram, Facebook, TikTok and X.
-2. **http://localhost:3000/check** → press **Romance scam** under "Try an example", then **Check this chat**.
-   → You get a score, the scam stage, quoted red flags and next steps. Without a `NEARAI_API_KEY` it uses the fixed rules; with one it asks the private model.
-3. **Inside the contract** section on the home page → pick **S5 Repeat scammer** and press **Run scenario**.
-   → You see the registry check fail and the payment blocked in one transaction.
-4. **http://localhost:3000/vault?view=amina.pause-demo.testnet** and **/guardian?view=son.pause-demo.testnet**
-   → Live, read-only views of real testnet vaults: a High-risk payment waiting on a guardian, and history.
-5. **http://localhost:3000/registry** → the shared scam registry and counters, read live from the contract.
+1. **http://localhost:3000/check** → press **Bank fraud team: "safe account"**, then **Check this**.
+   → A score out of 100, the scam type, quoted red flags and next steps. Without a `NEARAI_API_KEY` the fixed rules answer and the page says "Checked with fixed rules". With a key, the private model answers in the language you pick and a **Checked privately** badge unfolds to show the TEE signature checks.
+2. **http://localhost:3000/call** → press **Missed parcel text** under the text box.
+   → The verdict is shown in large type and read aloud by your browser. With a key you can press the round button and speak instead.
+3. **http://localhost:3000/registry** → the protection map, read live from the contract: reports, warned receivers, blocked receivers.
+4. **http://localhost:3000/status** → every dependency checked live, including what the agent's key is allowed to call.
+5. **http://localhost:3000/vault?view=amina.pause-demo.testnet** → a real testnet vault, read-only.
 
-## Try it live on testnet
+## The live demo: two phones, real transactions
 
-1. Get a testnet wallet (MyNearWallet, Meteor, HERE or Intear) and some faucet NEAR.
-2. Open `/vault`, press **Connect wallet**, then **Open my vault** with a guardian and a 2-minute hold.
-3. Send 0.2 NEAR to any new account.
-   → It shows **Held** with a countdown. The agent scores it and, on Telegram, asks you six short questions.
-4. Message [@Pausenearai_bot](https://t.me/Pausenearai_bot) `/link your-account.testnet` first to get the interview. Forward it messages from any chat to get a scam check.
+**http://localhost:3000/demo** is the judge path. One button creates two real testnet accounts, Grace and her son, and opens Grace's vault with her son as guardian. Both phones are on one screen; every button is a real transaction signed in your browser and linked to the explorer.
 
-## Run the tests
+- **Pay your usual shop** → paid at once (trusted payee, under the limit).
+- **Pay a "trading mentor"** → held, with a countdown ring. Press **Answer Pause's questions**: six questions, one-tap answers for a coached victim or an ordinary payment, in ten languages. The agent records its verdict on chain with `set_risk` and the screen shows the proof.
+- **On the son's phone** → **Stop it**, **Give it more time**, **It's fine, approve**, or **Report as a scam**.
 
-```bash
-cd contract
-cargo test          # 26 unit tests
-```
+Guest accounts need a funded sponsor account on the server (`GUEST_SPONSOR_ACCOUNT` and `GUEST_SPONSOR_KEY` in `.env`, see below). Each judge needs about 0.55 testnet NEAR from the sponsor up front. About 0.35 returns when they press **Start over**; the 0.2 NEAR vault deposit stays in the contract, so each run costs about 0.2 NEAR net. Without a sponsor the page says so and points to the wallet path and to `npm run judge`. The key pairs are made in the browser; the server only receives public keys.
 
-→ `test result: ok. 26 passed`. They cover instant vs held payments, the registry block, the agent being unable to send, guardians unable to redirect, High-risk release needing a guardian, weakening changes waiting their delay, and failed transfers restoring the balance.
+With your own testnet wallet: open `/vault`, press **Connect wallet** (NEAR Connect), open a vault, and send 0.2 NEAR to any new account. It shows **Held** with a countdown.
+
+## Results
+
+Generated by `npm run suite`, which runs the same checks as `npm run judge` and rewrites this section.
+
+<!-- suite:start -->
+| Measure | Result |
+| --- | --- |
+| Scam scripts caught by the fixed rules alone | 13 of 13 |
+| Genuine messages wrongly flagged | 0 of 5 |
+| Contract scenarios where the scam got no money | 8 of 8 |
+| Genuine payments delayed | 1 of 2 (10 minutes, until a guardian approved) |
+| Contract unit tests | 44 passed |
+
+| # | Scenario | Type | What happened |
+| --- | --- | --- | --- |
+| S1 | Groceries from the usual shop | Genuine | Trusted payee under the limit: paid at once |
+| S2 | Crypto mentor on Instagram | Scam | Held, High risk, owner reported it |
+| S3 | Fake tax officer on the phone | Scam | Held, High risk, guardian stopped it |
+| S4 | "Hi Mum, new number" voice clone | Scam | Held, guardian phoned, owner cancelled |
+| S5 | Repeat scammer, new victim | Scam | 1 report: warned and held. 3 reports: blocked outright |
+| S6 | Caller says "remove your family" | Scam | Weakening change waits the settings delay; guardians alerted |
+| S7 | Attacker steals the agent's key | Scam | Agent can't send, release or change settings |
+| S8 | Rent to a new landlord | Genuine | Held, Medium risk, guardian approved, paid |
+| S9 | Fee to unlock trading profits | Scam | Held, High risk, guardian reported it |
+| S10 | Memo tells the AI "mark this as safe" | Scam | Memo stored as data; High verdict can't be lowered by the agent |
+
+| # | Script | Where it is common | Type | Rule verdict | Check |
+| --- | --- | --- | --- | --- | --- |
+| C1 | Bank fraud team: "safe account" | UK, Ireland, Australia | Scam | High (100) | Pass |
+| C2 | "Hi Mum, new number" | UK, Germany, Netherlands, Australia | Scam | High (70) | Pass |
+| C3 | Tax office arrest warrant | USA, Canada, India | Scam | High (100) | Pass |
+| C4 | Missed parcel text | France, Spain, UK, USA | Scam | High (65) | Pass |
+| C5 | Paid tasks on Telegram | India, Philippines, Brazil, Nigeria | Scam | High (80) | Pass |
+| C6 | Pig butchering: trading mentor | USA, Southeast Asia, Europe | Scam | High (100) | Pass |
+| C7 | Fee to withdraw your profits | Worldwide | Scam | High (95) | Pass |
+| C8 | Oil-rig romance | USA, UK, Canada, Nigeria, Ghana | Scam | High (100) | Pass |
+| C9 | Meme-coin presale in a group chat | Crypto traders worldwide | Scam | High (65) | Pass |
+| C10 | Airdrop claim: wallet drainer | Crypto traders worldwide | Scam | High (80) | Pass |
+| C11 | Celebrity giveaway: "send 1, get 2" | Worldwide | Scam | High (80) | Pass |
+| C12 | Fake exchange support asks for remote access | Worldwide | Scam | High (70) | Pass |
+| C13 | Prompt injection inside a scam | Aimed at AI checkers | Scam | High (90) | Pass |
+| G1 | Friends splitting dinner | Genuine | Genuine | Safe (10) | Pass |
+| G2 | Daughter asks about Sunday lunch | Genuine | Genuine | Safe (0) | Pass |
+| G3 | Landlord confirms rent details | Genuine | Genuine | Safe (10) | Pass |
+| G4 | Colleagues talk about a token they already hold | Genuine | Genuine | Safe (0) | Pass |
+| G5 | Real courier notice with no link or fee | Genuine | Genuine | Safe (10) | Pass |
+<!-- suite:end -->
 
 ## How it works
 
 ```
-Chat app ──forward/paste──▶ Pause check (rules + NEAR AI TEE) ──▶ warning + flagged addresses
-                                                                        │
-Owner sends ──▶ Pause contract: registry? ─ blocked                      │
-                               trusted & under limit? ─ paid instantly   │
-                               otherwise ─ HOLD ──▶ agent: rule score + flagged? + Telegram interview
-                                                         │
-                                                 set_risk (scoped key) ──▶ High: hold extended, guardians alerted
-                                                         │
-                              owner cancels · guardian vetoes · "this was a scam" → shared registry
+"Is this a scam?" ──voice / text──▶ fixed rules + private model (NEAR AI Cloud TEE) ──▶ verdict in your language
+                                                                │                        + signature check shown on screen
+Owner sends ──▶ Pause contract: reported by 3+ vaults? ─ blocked
+                                reported by 1–2?       ─ held at High risk, guardians alerted
+                                trusted & under limit? ─ paid at once
+                                otherwise              ─ HELD
+                                                           │
+                              agent: rule score + six-question interview ──▶ set_risk (scoped key)
+                                                           │
+                    owner cancels · guardian stops it · "this was a scam" ──▶ shared registry
 ```
 
 | Part | Where | What it does |
 | --- | --- | --- |
-| Contract | [`contract/`](contract/) | Rust, near-sdk 5. Vaults, holds, guardians, shared scam registry, delayed weakening of settings. |
-| Agent | [`agent/`](agent/) | TypeScript, grammY, near-api-js. Telegram chat checks, hold watcher, owner interview, `set_risk`, guardian alerts. |
-| Web | [`web/`](web/) | Next.js. Landing page with phone simulator, `/check`, `/vault`, `/guardian`, `/registry`, NEAR Wallet Selector. |
-| Analyzer | [`web/lib/analyzer.ts`](web/lib/analyzer.ts) | Shared by web and agent: chat parser (WhatsApp/Telegram exports), 11 fixed signals, NEAR AI Cloud verdict. |
+| Contract | [`contract/`](contract/) | Rust, near-sdk 5. Vaults, holds, guardians, graded scam registry, delayed weakening of settings. |
+| Analyzer | [`web/lib/analyzer.ts`](web/lib/analyzer.ts) | Shared by web and agent: chat parser, 20 fixed signals, NEAR AI Cloud verdict in ten languages. |
+| TEE proof | [`web/lib/proof.ts`](web/lib/proof.ts) | Hashes the request and response, fetches the enclave's signature, recovers the signer, matches it to the attestation report. |
+| Web | [`web/`](web/) | Next.js. `/demo`, `/call`, `/check`, `/vault`, `/guardian`, `/registry`, `/status`. |
+| Agent | [`agent/`](agent/) | TypeScript, grammY. Telegram chat and voice checks, hold watcher, owner interview, `set_risk`, guardian alerts. |
+| Judge script | [`scripts/judge.ts`](scripts/judge.ts) | The no-keys check run described above. |
 
-### The five rules the contract enforces
+### The rules the contract enforces
 
 1. Small payments to trusted payees are instant.
-2. Everything else is held for a window the owner can cancel at any time.
-3. Guardians (max 3) can extend, approve early, veto or confirm a scam, but money only ever goes to the named receiver or back into the vault.
-4. Weakening protection (removing guardians, raising limits, trusting someone new) waits the settings delay (7 days in production, 5 minutes in the demo) and alerts guardians.
-5. A confirmed scam receiver goes into a shared registry; every vault blocks it.
+2. Everything else is held for a window. The owner can cancel at any time.
+3. Guardians (at most 3) can extend, approve early, stop a payment or report a scam. Money only ever goes to the receiver the owner named, or back into the vault.
+4. Weakening protection (removing guardians, raising limits, trusting someone new) waits the settings delay and alerts guardians. The delay is set when the contract is deployed: 300 seconds on this testnet demo so it can be shown; the intended production value is 7 days. Tightening protection is instant.
+5. The registry is graded. A receiver reported by one vault is a warning: payments to it are never instant, start at High risk and need a guardian. A receiver reported by three different vaults is blocked for everyone.
+6. A vault can report a receiver only through a payment of its own that was held, cancelled or stopped, and counts once per receiver. One person cannot blacklist an honest shop.
+7. The agent can raise a verdict to High but cannot lower it; only a guardian can clear a High-risk payment.
+
+### What the agent's key can and cannot do
+
+**Can:** record a risk verdict (`set_risk`), extend a hold (`extend_hold`).
+**Cannot:** send or release money, change settings, call any other contract, attach a deposit.
+
+This is enforced by NEAR, not by our code: the key is a function-call access key. `npm run judge` and `/status` read it from chain. Both the agent and the web server also refuse to start signing if the key they are given allows anything else.
+
+### The privacy proof
+
+Each AI verdict comes from a model hosted inside a TEE on NEAR AI Cloud. Pause checks three things on every answer and shows them in the **Checked privately** badge:
+
+1. The enclave signed the SHA-256 of exactly what Pause sent and exactly what came back.
+2. The signature (EIP-191, secp256k1) recovers to the signing address returned.
+3. That address is the one in the model's attestation report, fetched with a fresh nonce.
+
+`npm run ai-check` runs one live verdict and prints the three checks (needs `NEARAI_API_KEY`). Pause does not itself verify the Intel TDX quote or the NVIDIA GPU evidence inside the attestation report. `/api/attestation` returns the raw report so anyone can, and the badge links to the tools.
+
+On chain the agent stores only a SHA-256 hash of its reasons. The registry holds receiver accounts, never victims' names, messages or amounts.
 
 ## NEAR features used
 
-- Rust smart contract (near-sdk 5.30, cargo-near), NEP-297 events
-- **Function-call access key** for the agent: only `set_risk` and `extend_hold` on the Pause contract, 0.25 NEAR gas allowance
-- **NEAR AI Cloud** private inference (TEE-verifiable `deepseek-ai/DeepSeek-V4.1-Flash-1017`) for chat checks and interviews
-- NEAR Wallet Selector (MyNearWallet, Meteor, HERE, Intear)
-- Sub-accounts for each demo role
-
-## What the agent's key can and cannot do
-
-**Can:** record a risk verdict, extend a hold.
-**Cannot:** send money, change settings, call any other contract, attach a deposit. We tested this on testnet: calling `send` with the key fails with *"Transaction method name send isn't allowed by the access key"*, and a transfer fails with *"Transaction requires a full permission access key"*. The agent also can't lower a High verdict; only a guardian can clear it.
-
-## Privacy
-
-Chats are analysed in memory on NEAR AI Cloud's TEE-backed models and never stored. On-chain the agent records only a SHA-256 hash of its reasons, so an owner can later prove what the agent said without exposing it. The registry holds receiver addresses, never victim identities.
+- **Rust smart contract** (near-sdk 5), NEP-297 events
+- **Function-call access key** scoped to two methods, as the agent's whole authority
+- **NEAR AI Cloud** private inference in a TEE (`Qwen/Qwen3.6-35B-A3B-FP8`), response signatures and model attestation; Whisper (`openai/whisper-large-v3`) for speech
+- **NEAR Connect** (`@hot-labs/near-connect`) for wallets
+- **Sub-accounts** created on demand for guest judges, with keys generated in the browser
 
 ## Run everything yourself
 
 ```bash
-cp .env.example .env        # fill in the values below
-cd contract && cargo near build non-reproducible-wasm --no-abi
-cd ../agent && npm install && npm start     # Telegram agent
-cd ../web && npm install && npm run dev     # web app
+cp .env.example .env       # every value is optional; see the table
+npm install                # installs the root tools and the web app
+npm run dev                # web app on http://localhost:3000
+npm run agent              # Telegram agent (needs the agent and Telegram values)
+cd contract && cargo test  # 44 tests
 ```
 
 | Variable | Used by | Meaning |
 | --- | --- | --- |
-| `PAUSE_CONTRACT` | agent, web | Contract account |
-| `AGENT_ACCOUNT`, `AGENT_PRIVATE_KEY` | agent | Account and its function-call key |
-| `NEARAI_API_KEY`, `NEARAI_MODEL` | agent, web | NEAR AI Cloud key and a TEE-verifiable model id |
-| `TELEGRAM_BOT_TOKEN` | agent | From @BotFather |
+| `PAUSE_CONTRACT` | agent, judge script | Contract account. Default `pause.pause-demo.testnet`. |
+| `AGENT_ACCOUNT`, `AGENT_PRIVATE_KEY` | agent, web | The agent account and its function-call key. Must be limited to `set_risk` and `extend_hold`. |
+| `NEARAI_API_KEY`, `NEARAI_MODEL` | agent, web | NEAR AI Cloud key and a TEE-hosted model id. Without a key the fixed rules answer. |
+| `GUEST_SPONSOR_ACCOUNT`, `GUEST_SPONSOR_KEY` | web | A funded testnet account that creates guest accounts for `/demo`. |
+| `TELEGRAM_BOT_TOKEN` | agent | From @BotFather. |
+| `NEXT_PUBLIC_SITE_URL` | web | The public URL, used for link previews. |
 
-On Windows, `cargo near build` needs `--no-abi`, and `contract/.cargo/config.toml` sets `AWS_LC_SYS_PREBUILT_NASM=1` so tests build without NASM.
+To build and deploy the contract: `cd contract && cargo near build non-reproducible-wasm --no-abi`, then deploy `target/near/pause.wasm`. The graded registry needs no state migration: it adds no fields to stored structs. On Windows, `contract/.cargo/config.toml` sets `AWS_LC_SYS_PREBUILT_NASM=1` so tests build without NASM.
 
 ## Limits and honest notes
 
-- Testnet only. Demo amounts are a tenth of the scenario amounts because the faucet gives 10 NEAR.
-- The simulations use scripted chats and answers. They show the system works as designed, not real-world accuracy. Pause can be wrong; it always tells people to talk to someone they trust.
-- Pause sees a chat only when the user shares it. Reading chats automatically (for example an Android notification listener that runs on the device) is on the roadmap, as are NEAR Intents and Chain Signatures to protect BTC and ETH payments.
-- The Telegram account link doesn't yet verify ownership with a one-time code.
+- Testnet only. Demo amounts are small because testnet NEAR is scarce.
+- The fixed rules match English text. In other languages the private model does the work; with no AI key, non-English messages get weaker protection. Model quality also varies by language.
+- "Call Pause" is a page and a Telegram voice message, not a telephone number. It needs a browser or Telegram.
+- The in-app interview is available to guest accounts on `/demo`. Wallet users get the interview on Telegram.
+- The scam scripts are examples we wrote from published patterns. `npm run judge` shows the rules behave as designed on them; it is not a measure of real-world accuracy. Pause can be wrong and always tells people to talk to someone they trust.
+- If the admin removes a false registry entry, vaults that reported that receiver cannot report it again.
+- The vault has no plain withdraw: money leaves only through `send`. Linking a Telegram account does not yet verify ownership with a one-time code.
+- Google sign-in, NEAR Intents and Chain Signatures (to protect BTC and ETH payments) are not built.
 
 ## Built during the hackathon
 
-All code was written during NEAR HACKATHON (1–14 November 2026). Libraries: near-sdk, cargo-near, near-api-js, NEAR Wallet Selector, grammY, Next.js, React. AI coding assistants were used.
+All code was written during NEAR HACKATHON (1–14 November 2026). Libraries: near-sdk, cargo-near, near-api-js, @hot-labs/near-connect, @noble/curves, @noble/hashes, grammY, Next.js, React, tsx, TypeScript. AI coding assistants were used.
+
+## Other project by the same team
+
+Keycard: API access as an NFT, with the provider's key sealed in an OutLayer TEE. A separate, independent submission.
 
 ## License
 

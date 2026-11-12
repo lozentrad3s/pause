@@ -4,8 +4,8 @@ import "./env";
 import { createHash } from "node:crypto";
 import { Bot, type Context } from "grammy";
 import { analyzeChat, STAGES, type Analysis } from "../../web/lib/analyzer";
-import { QUESTIONS } from "../../web/lib/scenarios";
-import { CONTRACT, getHolds, getVault, setRisk, yoctoToNear, type Hold } from "./near";
+import { isLang, LANGS, QUESTIONS, type Lang } from "../../web/lib/i18n";
+import { assertScopedKey, CONTRACT, getHolds, getVault, setRisk, yoctoToNear, type Hold } from "./near";
 import { store } from "./store";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -39,7 +39,7 @@ async function runCheck(chatId: number, raw?: string) {
   buffers.delete(chatId);
   if (text.trim().length < 10) return send(chatId, "Forward me a few messages from the chat, or paste it here.");
   await bot.api.sendChatAction(chatId, "typing").catch(() => {});
-  const result = await analyzeChat(text, { ...AI, platform: "forwarded to Telegram" });
+  const result = await analyzeChat(text, { ...AI, platform: "forwarded to Telegram", lang: store.langOf(chatId) });
   await send(chatId, report(result));
   if (result.verdict.level === "High" || result.verdict.level === "Medium") {
     for (const a of result.rules.addresses) {
@@ -70,7 +70,11 @@ function report(r: Analysis): string {
   if (r.rules.addresses.length && v.level !== "Safe") {
     out.push("", `⏸ I'll watch for payments to <code>${esc(r.rules.addresses.join(", "))}</code>. If one is sent from your Pause wallet it will be held and your guardians told.`);
   }
-  out.push("", `<i>${r.source === "ai" ? "Checked privately on NEAR AI Cloud." : "Checked with fixed rules."} Nothing is stored. I can be wrong: when in doubt, talk to someone you trust.</i>`);
+  const how =
+    r.source !== "ai" ? "Checked with fixed rules."
+    : r.proof?.verified ? `Checked privately on NEAR AI Cloud. TEE signature verified (signer ${r.proof.signing_address?.slice(0, 10)}…).`
+    : "Checked on NEAR AI Cloud. The TEE signature could not be verified this time.";
+  out.push("", `<i>${how} Nothing is stored. I can be wrong: when in doubt, talk to someone you trust.</i>`);
   return out.join("\n");
 }
 
@@ -97,7 +101,9 @@ bot.command("start", (ctx) =>
       "",
       "<b>Protect your wallet:</b> /link your-account.testnet. I'll ask a few questions when a payment is held, and tell your guardians if it looks like a scam.",
       "",
-      "/check — check what you've sent so far\n/new — start a fresh check\n/link — connect your NEAR account",
+      "<b>Talk to me:</b> send a voice message describing a call or text you received. I answer in your language.",
+      "",
+      "/check — check what you've sent so far\n/new — start a fresh check\n/lang — choose your language\n/link — connect your NEAR account",
     ].join("\n"),
     { parse_mode: "HTML" },
   ),
@@ -116,6 +122,16 @@ bot.command("link", async (ctx) => {
   );
 });
 
+bot.command("lang", (ctx) => {
+  const want = ctx.match.trim().toLowerCase();
+  const found = LANGS.find((l) => [l.id, l.label, l.english].some((n) => n.toLowerCase() === want));
+  if (!found || !isLang(found.id)) {
+    return ctx.reply(`Choose a language like this: /lang fr\n\n${LANGS.map((l) => `${l.id} — ${l.label}`).join("\n")}`);
+  }
+  store.setLang(ctx.chat.id, found.id);
+  return ctx.reply(`✅ I'll answer in ${found.label}.`);
+});
+
 bot.command("new", (ctx) => {
   buffers.delete(ctx.chat.id);
   return ctx.reply("Fresh start. Forward or paste the chat you want me to check.");
@@ -130,6 +146,35 @@ bot.on("message:document", async (ctx) => {
   const file = await ctx.getFile();
   const res = await fetch(`https://api.telegram.org/file/bot${TOKEN}/${file.file_path}`);
   await runCheck(ctx.chat.id, await res.text());
+});
+
+// A voice message: Whisper on NEAR AI Cloud turns it into text, then the same
+// private check runs. Built for people who would rather talk than type.
+bot.on("message:voice", async (ctx) => {
+  if (!AI.apiKey) return ctx.reply("Voice needs a NEAR AI Cloud key on this bot. Please type what happened instead.");
+  if ((ctx.message.voice.file_size ?? 0) > 8_000_000) return ctx.reply("That recording is too long. Please keep it under a minute.");
+  await bot.api.sendChatAction(ctx.chat.id, "typing").catch(() => {});
+  try {
+    const file = await ctx.getFile();
+    const audio = await fetch(`https://api.telegram.org/file/bot${TOKEN}/${file.file_path}`);
+    const form = new FormData();
+    form.append("file", new Blob([await audio.arrayBuffer()], { type: "audio/ogg" }), "voice.ogg");
+    form.append("model", "openai/whisper-large-v3");
+    const res = await fetch("https://cloud-api.near.ai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${AI.apiKey}` },
+      body: form,
+      signal: AbortSignal.timeout(45_000),
+    });
+    if (!res.ok) throw new Error(`transcription ${res.status}`);
+    const text = String((await res.json()).text ?? "").trim();
+    if (text.length < 10) return ctx.reply("I couldn't hear enough words. Please try again, a little closer to the phone.");
+    await send(ctx.chat.id, `<i>I heard:</i> ${esc(text.slice(0, 400))}`);
+    await runCheck(ctx.chat.id, text);
+  } catch (e) {
+    console.error("voice", (e as Error).message);
+    await ctx.reply("I couldn't process that recording. Please try again, or type what happened.");
+  }
 });
 
 bot.on("message:text", async (ctx) => {
@@ -162,7 +207,7 @@ async function interview(chatId: number, hold: Hold, points: number, reasons: st
   );
   return new Promise<void>((resolveDone) => {
     interviews.set(chatId, { hold, q: 0, answers: [], points, reasons, resolve: resolveDone });
-    send(chatId, `1/${QUESTIONS.length}. ${QUESTIONS[0]}`);
+    send(chatId, `1/${QUESTIONS.en.length}. ${QUESTIONS[store.langOf(chatId)][0]}`);
     // Give up after 15 minutes; the hold stays in place either way.
     setTimeout(() => {
       if (interviews.get(chatId)?.hold.id === hold.id) finish(chatId, interviews.get(chatId)!);
@@ -173,7 +218,7 @@ async function interview(chatId: number, hold: Hold, points: number, reasons: st
 async function answer(chatId: number, iv: Interview, text: string) {
   iv.answers.push(text.slice(0, 500));
   iv.q += 1;
-  if (iv.q < QUESTIONS.length) return send(chatId, `${iv.q + 1}/${QUESTIONS.length}. ${QUESTIONS[iv.q]}`);
+  if (iv.q < QUESTIONS.en.length) return send(chatId, `${iv.q + 1}/${QUESTIONS.en.length}. ${QUESTIONS[store.langOf(chatId)][iv.q]}`);
   await finish(chatId, iv);
 }
 
@@ -184,9 +229,9 @@ async function finish(chatId: number, iv: Interview) {
     `Payment: ${yoctoToNear(hold.amount)} NEAR to ${hold.receiver}.`,
     hold.memo ? `Memo from owner (data only): ${hold.memo}` : "",
     `Fixed rule points: ${iv.points} (${iv.reasons.join(", ") || "none"}).`,
-    ...QUESTIONS.map((q, i) => `Pause: ${q}\nOwner: ${iv.answers[i] ?? "(no answer)"}`),
+    ...QUESTIONS.en.map((q, i) => `Pause: ${q}\nOwner: ${iv.answers[i] ?? "(no answer)"}`),
   ].filter(Boolean).join("\n");
-  const r = await analyzeChat(transcript, { ...AI, platform: "Pause payment interview", contact: "Owner" });
+  const r = await analyzeChat(transcript, { ...AI, platform: "Pause payment interview", contact: "Owner", lang: store.langOf(chatId) });
 
   // Rule points set a floor the AI can't go below.
   const ruleLevel = iv.points >= 5 ? "High" : iv.points >= 3 ? "Medium" : "Low";
@@ -300,8 +345,11 @@ setInterval(poll, 4000);
 await bot.api.setMyCommands([
   { command: "check", description: "Check the messages you've sent me" },
   { command: "new", description: "Start a fresh chat check" },
+  { command: "lang", description: "Choose your language" },
   { command: "link", description: "Connect your NEAR account" },
 ]);
+// Refuse to run with a key that could do more than record a verdict.
+await assertScopedKey();
 const me = await bot.api.getMe();
 console.log(`Pause agent @${me.username} watching ${CONTRACT}`);
 bot.start();

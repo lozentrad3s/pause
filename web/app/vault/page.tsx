@@ -11,7 +11,7 @@ const DEMO_OWNER = "amina.pause-demo.testnet";
 
 export default function VaultPage() {
   return (
-    <Suspense fallback={<main className="wrap app-page"><p className="muted">Loading…</p></main>}>
+    <Suspense fallback={<main id="main" className="wrap app-page"><p className="muted">Loading…</p></main>}>
       <VaultInner />
     </Suspense>
   );
@@ -62,7 +62,7 @@ function VaultInner() {
 
   if (!viewing) {
     return (
-      <main className="wrap app-page">
+      <main id="main" className="wrap app-page">
         <section className="empty-hero">
           <span className="empty-icon" aria-hidden><svg width="22" height="22" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1.5" fill="currentColor" /><rect x="14" y="4" width="4" height="16" rx="1.5" fill="currentColor" /></svg></span>
           <h1>Your money, with a pause button.</h1>
@@ -76,11 +76,11 @@ function VaultInner() {
     );
   }
 
-  if (vault === undefined) return <main className="wrap app-page"><div className="skeleton" /><div className="skeleton short" /></main>;
+  if (vault === undefined) return <main id="main" className="wrap app-page"><div className="skeleton" /><div className="skeleton short" /></main>;
 
   if (vault === null) {
     return readOnly ? (
-      <main className="wrap app-page"><h1>No vault for {viewing}</h1><Link className="btn" href={`/vault?view=${DEMO_OWNER}`}>See the demo vault</Link></main>
+      <main id="main" className="wrap app-page"><h1>No vault for {viewing}</h1><Link className="btn" href={`/vault?view=${DEMO_OWNER}`}>See the demo vault</Link></main>
     ) : (
       <CreateVault onCreate={(args, deposit) => act("Vault opened", "create_vault", args, deposit)} busy={!!busy} toast={toast} />
     );
@@ -90,7 +90,7 @@ function VaultInner() {
   const past = holds.filter((h) => h.status !== "Pending");
 
   return (
-    <main className="wrap app-page">
+    <main id="main" className="wrap app-page">
       {readOnly && (
         <div className="banner">
           Viewing <b>{viewing}</b> read-only.{" "}
@@ -278,7 +278,7 @@ function CreateVault({ onCreate, busy, toast }: { onCreate: (args: object, depos
     );
   };
   return (
-    <main className="wrap app-page narrow">
+    <main id="main" className="wrap app-page narrow">
       <p className="eyebrow">Step 1 of 1</p>
       <h1>Open your Pause vault</h1>
       <p className="lede">Takes a minute. You can add more guardians and trusted people later.</p>
