@@ -909,8 +909,13 @@ impl Pause {
     }
 }
 
+pub mod pots;
+
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod pots_tests;
 
 #[cfg(test)]
 mod scenarios;

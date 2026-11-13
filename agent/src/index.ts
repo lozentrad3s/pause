@@ -7,6 +7,7 @@ import { analyzeChat, STAGES, type Analysis } from "../../web/lib/analyzer";
 import { isLang, LANGS, QUESTIONS, type Lang } from "../../web/lib/i18n";
 import { assertScopedKey, CONTRACT, getHolds, getVault, setRisk, yoctoToNear, type Hold } from "./near";
 import { store } from "./store";
+import { registerGroups, tickGroups } from "./groups";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not set");
@@ -14,6 +15,8 @@ const WEB = process.env.PAUSE_WEB_URL || "http://localhost:3000";
 const AI = { apiKey: process.env.NEARAI_API_KEY, model: process.env.NEARAI_MODEL };
 
 const bot = new Bot(TOKEN);
+// Group pot commands first, so they win over the personal chat handlers.
+registerGroups(bot);
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const send = (chatId: number, html: string) =>
@@ -199,6 +202,8 @@ bot.on("message:voice", async (ctx) => {
 });
 
 bot.on("message:text", async (ctx) => {
+  // In groups the bot answers only its commands, never the group's chatter.
+  if (ctx.chat.type !== "private") return;
   const chatId = ctx.chat.id;
   const text = ctx.message.text;
 
@@ -363,7 +368,15 @@ async function poll() {
 
 bot.catch((e) => console.error("bot error", e.message));
 setInterval(poll, 4000);
+setInterval(tickGroups, 6000);
 await bot.api.setMyCommands([
+  { command: "newpot", description: "Set up a group pot" },
+  { command: "connect", description: "Follow a pot in this group" },
+  { command: "plan", description: "Turn the plan into budget lines" },
+  { command: "status", description: "Raised, approved, paid, left" },
+  { command: "vendors", description: "Every budget line and its state" },
+  { command: "contribute", description: "Pay your share" },
+  { command: "ask", description: "Ask about the pot" },
   { command: "check", description: "Check the messages you've sent me" },
   { command: "new", description: "Start a fresh chat check" },
   { command: "lang", description: "Choose your language" },

@@ -3,6 +3,7 @@ import { Fraunces, Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import "./v2.css";
 import "./app.css";
+import "./groups.css";
 import "./pause.css";
 import "./brand.css";
 import { LangProvider } from "@/lib/lang";

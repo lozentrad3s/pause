@@ -20,9 +20,12 @@ interface State {
   flags: Record<string, Flag>; // receiver address -> why it was flagged
   handled: number[]; // hold ids already processed
   langs: Record<string, Lang>; // chatId -> language Pause answers in
+  pots: Record<string, number[]>; // group chatId -> pot ids it follows
+  snaps: Record<string, string>; // pot id -> last seen state, to post only what changed
+  reminded: Record<string, string>; // "potId:account" -> date of the last private reminder
 }
 
-let state: State = { links: {}, flags: {}, handled: [], langs: {} };
+let state: State = { links: {}, flags: {}, handled: [], langs: {}, pots: {}, snaps: {}, reminded: {} };
 if (existsSync(FILE)) state = { ...state, ...JSON.parse(readFileSync(FILE, "utf8")) };
 
 function save() {
@@ -52,6 +55,25 @@ export const store = {
   markHandled(id: number) {
     state.handled.push(id);
     state.handled = state.handled.slice(-500);
+    save();
+  },
+  followPot(chatId: number, potId: number) {
+    const ids = state.pots[String(chatId)] ?? [];
+    if (!ids.includes(potId)) state.pots[String(chatId)] = [...ids, potId];
+    save();
+  },
+  potsOf: (chatId: number) => state.pots[String(chatId)] ?? [],
+  followed: () => Object.entries(state.pots).flatMap(([c, ids]) => ids.map((id) => ({ chatId: Number(c), potId: id }))),
+  snap: (potId: number) => state.snaps[String(potId)],
+  setSnap(potId: number, s: string) {
+    state.snaps[String(potId)] = s;
+    save();
+  },
+  remindedToday(potId: number, account: string) {
+    return state.reminded[`${potId}:${account}`] === new Date().toISOString().slice(0, 10);
+  },
+  markReminded(potId: number, account: string) {
+    state.reminded[`${potId}:${account}`] = new Date().toISOString().slice(0, 10);
     save();
   },
 };
