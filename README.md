@@ -6,7 +6,7 @@ Add Pause to your group chat. It helps you plan the event, collects everyone's s
 
 > Every group that raises money has one tired person chasing payments and one nervous question: what if the treasurer runs off with it? Pause is a treasurer that never gets tired and can't run off.
 
-**Live:** https://pauseai-near.vercel.app · **Telegram:** [@Pausenearai_bot](https://t.me/Pausenearai_bot) · **Contract:** [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Tracks: Social Money, Real-World Money, Privacy & Private AI, AI Security & Defense
+**Live:** https://pauseai-near.vercel.app · **Telegram:** [@Pausenearai_bot](https://t.me/Pausenearai_bot) · **Contract:** [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Tracks: Social Money (`social`), Real-World Money (`realworld`), Agent Economy (`agents`), Privacy & Private AI (`privacy`), AI Security & Defense (`security`)
 
 ## Try it in two minutes, nothing to install
 
@@ -43,7 +43,7 @@ Add Pause to your group chat. It helps you plan the event, collects everyone's s
 | `/quiet`, `/active` | Stop or resume answering untagged questions |
 | `/help` | Everything above |
 
-To answer untagged questions, the bot needs Telegram's privacy mode off (@BotFather → `/setprivacy` → Disable, then re-add the bot) or admin rights in the group. With privacy mode on it sees only commands, mentions and replies to it. It keeps the last 20 messages of a chat in memory to follow the conversation and stores no transcripts. Signing happens on a web page opened from the bot, because Telegram can't sign NEAR transactions.
+To answer untagged questions, the bot needs Telegram's privacy mode off (@BotFather → `/setprivacy` → Disable, then re-add the bot) or admin rights in the group. With privacy mode on it sees only commands, mentions and replies to it. It keeps the last 20 messages of a chat in memory to follow the conversation and stores no transcripts. Pause answers in the language people write in (the website chat and the bot both use NEAR AI Cloud). Signing happens on a web page opened from the bot, because Telegram can't sign NEAR transactions.
 
 The agent runs as an always-on service on Railway (`railway.json`; health check at `/health`).
 
@@ -124,10 +124,10 @@ npm install
 npm run judge
 ```
 
-→ You see three groups of checks, each line `PASS` or `FAIL`, ending with a line like `42 checks passed, 0 failed`:
+→ You see four groups of checks, each line `PASS` or `FAIL`, ending with `44 checks passed, 0 failed`:
 
 1. **Scam scripts.** 13 real scripts from different countries (fake bank call, "Hi Mum", tax office warrant, parcel text, paid tasks, pig butchering, meme-coin presale, wallet drainer, giveaway…) and 5 genuine messages go through the fixed rules. Every scam must reach its expected level; no genuine message may be flagged.
-2. **Contract.** `cargo test` runs 44 unit tests and the ten scenarios S1–S10 against the real contract code. Without Rust this group is skipped and the run says so.
+2. **Contract.** `cargo test` runs 69 unit tests (28 of them for group pots) and the ten scenarios S1–S10 against the real contract code. Without Rust this group is skipped and the run says so.
 3. **Live testnet, read-only.** The deployed contract answers, the graded registry is live, and the agent's key on chain is limited to `set_risk` and `extend_hold`. `OFFLINE=1 npm run judge` skips this group.
 
 Then open the site:
@@ -266,6 +266,10 @@ The organisers publish an example prompt for each track. This is where each thin
 
 | Track prompt asks for | Where it is |
 | --- | --- |
+| Social: shared budgets and what communities do with them | Group pots in [`contract/src/pots.rs`](contract/src/pots.rs): k-of-n approval per vendor, a hold window with Object, pro-rata refunds. The Telegram bot and `/groups` run them |
+| Real-World Money: payments a normal group could use tomorrow | Paying event vendors (hall, caterer, drinks) from a pot, receipts posted in the group, vendors confirm delivery (`vendor_confirm`) |
+| Agent Economy: an agent that spends on someone's behalf | The treasurer proposes and pays approved budget lines with its own NEAR account ([`web/lib/treasurer.ts`](web/lib/treasurer.ts)); it buys live web search for planning ([`web/lib/chat.ts`](web/lib/chat.ts)) |
+| Security: give the AI money without the keys to everything | Treasurer key limited to `propose_line` and `pay_line`; agent key limited to `set_risk` and `extend_hold`; neither account has a full-access key (checked by `npm run judge`) |
 | Security: a verdict of allow, warn or block with reasons | `get_registry_status` returns `clear`, `warned` or `blocked`; `send` pays, holds or blocks on it ([`contract/src/lib.rs`](contract/src/lib.rs)) |
 | Security: a shared blocklist agents can report to | The graded registry. A vault can only report through a payment of its own that was held, cancelled or stopped |
 | Security: sign with a function-call key, never a full-access key | The agent and the web server refuse to sign unless the key is limited to `set_risk` and `extend_hold` ([`agent/src/near.ts`](agent/src/near.ts), [`web/lib/server.ts`](web/lib/server.ts)) |
@@ -284,7 +288,7 @@ The organisers publish an example prompt for each track. This is where each thin
 | [`agent/`](agent/) | The Telegram agent. It imports the analyzer from `web/lib` |
 | [`scripts/`](scripts/) | `judge.ts` (the no-keys check run) and `ai-check.ts` (one live verdict with its proof) |
 | [`docs/DESIGN.md`](docs/DESIGN.md) | Design notes: colours, surfaces, photographs, the mascot |
-| [`video/`](video/) | The two videos as code. `make-launch.mjs` renders the motion-graphics explainer from `film.html` and `launch.json`; `make-demo.mjs` records the real site while it runs the demo on testnet. Both need Edge or Chrome, `pip install edge-tts` for the narration, and `npm install` inside `video/`. Output goes to `video/out/` |
+| [`video/`](video/) | The videos as code. `make-pitch.mjs` builds the pitch (problem, a real Telegram group, live venue search, languages, the pot); `make-groups.mjs` records the group demo on the live site with real testnet transactions; `make-launch.mjs` and `make-demo.mjs` are the earlier explainer and personal-protection demo. Both need Edge or Chrome, `pip install edge-tts` for the narration, and `npm install` inside `video/`. Output goes to `video/out/` |
 | [`HACKATHON.md`](HACKATHON.md) | The organisers' rules, as downloaded |
 
 ## NEAR features used
