@@ -64,8 +64,33 @@ export async function pauseReply(history: Turn[], opts: ReplyOpts = {}): Promise
 
 const SEARCH_WORDS = /(find|search|scout|look up|look for|recommend|suggest|best|cheap|cheapest|affordable|hotel|hotels|airbnb|bnb|b&b|hostel|apartment|villa|venue|venues|hall|restaurant|lounge|club|bar|beach|resort|price|prices|how much|cost|flight|flights|ticket|tickets|where can|where to|book|booking|rent)/i;
 
-/** Live web search with pictures (Tavily). Returns nothing if no key is set. */
-async function webSearch(query: string): Promise<{ results: { title: string; url: string; content: string }[]; images: { url: string; description?: string }[] } | null> {
+type Found = { results: { title: string; url: string; content: string }[]; images: { url: string; description?: string }[] };
+
+/** Google results and photos through Serper (serper.dev). */
+async function serperSearch(query: string, key: string): Promise<Found | null> {
+  const call = (path: string, body: object) =>
+    fetch(`https://google.serper.dev/${path}`, {
+      method: "POST",
+      headers: { "X-API-KEY": key, "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(15000),
+      body: JSON.stringify(body),
+    }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const q = query.slice(0, 300);
+  const [web, pics] = await Promise.all([call("search", { q, num: 8 }), call("images", { q, num: 8 })]);
+  if (!web) return null;
+  type Org = { title: string; link: string; snippet?: string; priceRange?: string; rating?: number; address?: string };
+  const places = ((web.places ?? []) as Org[]).slice(0, 3).map((p) => ({ title: String(p.title), url: String(p.link ?? `https://www.google.com/maps/search/${encodeURIComponent(p.title)}`), content: [p.address, p.rating ? `rated ${p.rating}` : "", p.priceRange].filter(Boolean).join(" · ") }));
+  const organic = ((web.organic ?? []) as Org[]).slice(0, 6).map((o) => ({ title: String(o.title).slice(0, 120), url: String(o.link), content: String(o.snippet ?? "").slice(0, 600) }));
+  const images = ((pics?.images ?? []) as { imageUrl: string; title?: string }[])
+    .filter((i) => /^https:\/\/.+\.(jpe?g|png|webp)(\?|$)/i.test(i.imageUrl))
+    .slice(0, 4)
+    .map((i) => ({ url: i.imageUrl, description: i.title }));
+  return { results: [...places, ...organic].slice(0, 8), images };
+}
+
+/** Live web search with pictures: Serper if its key is set, else Tavily. Nothing if neither. */
+async function webSearch(query: string): Promise<Found | null> {
+  if (process.env.SERPER_API_KEY) return serperSearch(query, process.env.SERPER_API_KEY);
   const key = process.env.TAVILY_API_KEY;
   if (!key) return null;
   try {
