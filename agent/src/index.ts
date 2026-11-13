@@ -7,7 +7,7 @@ import { analyzeChat, STAGES, type Analysis } from "../../web/lib/analyzer";
 import { isLang, LANGS, QUESTIONS, type Lang } from "../../web/lib/i18n";
 import { assertScopedKey, CONTRACT, getHolds, getVault, setRisk, yoctoToNear, type Hold } from "./near";
 import { store } from "./store";
-import { registerGroups, tickGroups } from "./groups";
+import { chatWithPause, registerGroups, tickGroups } from "./groups";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not set");
@@ -110,15 +110,15 @@ bot.command("start", (ctx) =>
   ctx.match === "call" ? ctx.reply(CALL_HELP, { parse_mode: "HTML" }) :
   ctx.reply(
     [
-      "👋 <b>I'm Pause.</b> I help you spot romance and crypto scams before you send money.",
+      "👋 <b>Hi, I'm Pause.</b> I help groups plan events, collect everyone's share, and pay vendors safely. I also stop payments to scammers.",
       "",
-      "<b>Check a chat:</b> forward me messages from the person you're unsure about, paste the chat, or send a WhatsApp export (.txt).",
+      "<b>Just talk to me.</b> Ask me to plan a birthday, suggest hangout spots, or split a budget.",
       "",
-      "<b>Protect your wallet:</b> /link your-account.testnet. I'll ask a few questions when a payment is held, and tell your guardians if it looks like a scam.",
+      "<b>In a group:</b> add me, then send /newpot. Mention @Pausenearai_bot or reply to me to chat.",
       "",
-      "<b>Talk to me:</b> send a voice message describing a call or text you received. I answer in your language.",
+      "<b>Worried about a message?</b> Paste or forward the chat and I'll check it for scam signs.",
       "",
-      "/call — talk to me with a voice message\n/check — check what you've sent so far\n/new — start a fresh check\n/lang — choose your language\n/link — connect your NEAR account",
+      "/help shows everything I can do.",
     ].join("\n"),
     { parse_mode: "HTML" },
   ),
@@ -219,9 +219,12 @@ bot.on("message:text", async (ctx) => {
       : origin.chat.title ?? "Them";
     return addToBuffer(ctx, `${who}: ${text}`);
   }
-  // A pasted chat (several lines) is checked straight away.
-  if (text.split("\n").length >= 3) return runCheck(chatId, text);
-  addToBuffer(ctx, text.includes(":") ? text : `Them: ${text}`);
+  // A pasted conversation ("Name: message" lines) is checked for scams straight away.
+  const lines = text.split("\n").filter((l) => l.trim());
+  const looksLikeChat = lines.length >= 3 && lines.filter((l) => /^[^:]{1,30}:\s/.test(l)).length >= 2;
+  if (looksLikeChat) return runCheck(chatId, text);
+  // Anything else is a conversation with Pause.
+  return chatWithPause(ctx);
 });
 
 // ------------------------------------------------------------ hold watcher
@@ -370,6 +373,10 @@ bot.catch((e) => console.error("bot error", e.message));
 setInterval(poll, 4000);
 setInterval(tickGroups, 6000);
 await bot.api.setMyCommands([
+  { command: "help", description: "Everything Pause can do" },
+  { command: "budget", description: "Suggest a budget for an event" },
+  { command: "hangout", description: "Recommend places to meet" },
+  { command: "remind", description: "Privately remind people who haven't paid" },
   { command: "newpot", description: "Set up a group pot" },
   { command: "connect", description: "Follow a pot in this group" },
   { command: "plan", description: "Turn the plan into budget lines" },

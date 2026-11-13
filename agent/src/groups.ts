@@ -18,7 +18,71 @@ import {
   type Line,
   type Pot,
 } from "../../web/lib/treasurer";
+import { pauseReply, type Turn } from "../../web/lib/chat";
 import { store } from "./store";
+
+// ------------------------------------------------------------- conversation
+
+const history = new Map<number, Turn[]>();
+function remember(chatId: number, t: Turn) {
+  const h = history.get(chatId) ?? [];
+  h.push(t);
+  history.set(chatId, h.slice(-20));
+}
+
+function speaker(ctx: Context) {
+  const f = ctx.from;
+  return f ? [f.first_name, f.last_name].filter(Boolean).join(" ") || f.username || "Someone" : "Someone";
+}
+
+/** Plain markdown-ish model text, made safe for Telegram HTML. */
+function toHtml(text: string) {
+  return esc(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^#{1,4}\s*(.+)$/gm, "<b>$1</b>").replace(/^\s*[-*]\s+/gm, "• ");
+}
+
+/** Answers one message with Pause's AI, using the group's pot if it follows one. */
+export async function chatWithPause(ctx: Context, textOverride?: string) {
+  const chatId = ctx.chat!.id;
+  const raw = (textOverride ?? ctx.message?.text ?? "").replace(new RegExp(`@${bot.botInfo?.username ?? "Pausenearai_bot"}`, "gi"), "").trim();
+  if (!raw) return ctx.reply("Yes? Ask me to plan something, check on the pot, or suggest a hangout spot.");
+  const group = ctx.chat!.type !== "private";
+  remember(chatId, { role: "user", content: raw, name: group ? speaker(ctx) : undefined });
+  await ctx.replyWithChatAction("typing").catch(() => {});
+  const potIds = store.potsOf(chatId);
+  const reply = await pauseReply(history.get(chatId) ?? [], {
+    potId: potIds.length ? potIds[potIds.length - 1] : null,
+    where: group ? "telegram-group" : "telegram-private",
+  });
+  remember(chatId, { role: "assistant", content: reply });
+  return ctx.reply(toHtml(reply), {
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    ...(ctx.message ? { reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true } } : {}),
+  });
+}
+
+const HELP = [
+  "<b>Pause, your group's planner and treasurer</b>",
+  "",
+  "<b>Talk to me</b>: mention @Pausenearai_bot or reply to my message. Ask me to plan, budget, or find a hangout spot.",
+  "",
+  "<b>Plan</b>",
+  "/budget &lt;event&gt; · a suggested budget, e.g. /budget birthday for 20 in Lagos",
+  "/hangout &lt;city&gt; · places to meet, e.g. /hangout Abuja, chill, under 10k each",
+  "/plan &lt;plan&gt; · turn your plan into budget lines the group votes on",
+  "",
+  "<b>Save and pay</b>",
+  "/newpot · start a group pot (like a digital ajo box)",
+  "/connect &lt;number&gt; · follow a pot here",
+  "/contribute · pay your share",
+  "/status · raised, paid, left, who hasn't paid",
+  "/vendors · every budget line and where it stands",
+  "/remind · gently remind people who haven't paid (privately)",
+  "/ask &lt;question&gt; · answered from the pot on NEAR",
+  "",
+  "<b>Stay safe</b>",
+  "I only pay vendors your group approved, after a short wait anyone can stop. Accounts reported as scammers are never paid. In a private chat with me, paste any suspicious conversation and I'll check it.",
+].join("\n");
 
 const WEB = process.env.PAUSE_WEB_URL || "http://localhost:3000";
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -134,12 +198,12 @@ async function postChanges(chatId: number, potId: number) {
   }
 }
 
-async function remind(potId: number) {
+async function remind(potId: number, force = false) {
   const report = await getReport(potId);
   const pot = await getPot(potId);
   if (!pot || !["Raising", "Spending"].includes(pot.status)) return;
   for (const account of report.unpaid_members) {
-    if (store.remindedToday(potId, account)) continue;
+    if (!force && store.remindedToday(potId, account)) continue;
     for (const chatId of store.chatsOf(account)) {
       const btn = buttons([["Pay my share", potUrl(potId, "act=contribute")]]);
       await send(chatId, `👋 A gentle reminder: your share for <b>${esc(pot.name)}</b> is ${pot.contribution_each ? `${fmt(pot.contribution_each)} NEAR` : "still open"}. The group has raised ${fmt(pot.raised)} of ${fmt(pot.goal)} NEAR.${btn.text}`, btn.kb);
@@ -152,6 +216,27 @@ async function remind(potId: number) {
 
 export function registerGroups(b: Bot) {
   bot = b;
+
+  b.command("help", (ctx) => ctx.reply(HELP, { parse_mode: "HTML" }));
+
+  b.command("pause", (ctx) => chatWithPause(ctx, ctx.match));
+
+  b.command("budget", (ctx) =>
+    chatWithPause(ctx, ctx.match ? `Suggest a simple budget for: ${ctx.match}. Give a short list of items with rough amounts and a total, then say the group can send /plan with real vendor accounts to vote on it.` : "Ask me what event we're planning, the city, the date and how many people, so you can suggest a budget."),
+  );
+
+  b.command("hangout", (ctx) =>
+    chatWithPause(ctx, ctx.match ? `Recommend hangout spots for: ${ctx.match}. Give 3 to 5 kinds of places or well-known areas with a one-line reason and a rough price level each. Say prices are estimates.` : "Ask me which city and what kind of hangout we want, so you can recommend spots."),
+  );
+
+  b.command("remind", async (ctx) => {
+    const id = await needPot(ctx);
+    if (id === null) return;
+    const r = await getReport(id);
+    if (!r.unpaid_members.length) return ctx.reply("Everyone has paid their share. 🎉");
+    await remind(id, true);
+    return ctx.reply(`👋 I've sent a private reminder to ${r.unpaid_members.length} member${r.unpaid_members.length > 1 ? "s" : ""} who linked their account with me. No public shaming.`);
+  });
 
   b.command("newpot", (ctx) => {
     const url = `${WEB}/groups/new?chat=${ctx.chat.id}`;
@@ -232,6 +317,19 @@ export function registerGroups(b: Bot) {
       lines.map((l) => `${icon[l.status]} <b>${esc(l.label)}</b> · ${fmt(l.paid)}/${fmt(l.amount)} NEAR · <code>${esc(l.vendor)}</code> · ${l.status}${l.vendor_note ? `\n   📦 ${esc(l.vendor_note)}` : ""}`).join("\n"),
       { parse_mode: "HTML" },
     );
+  });
+
+  // In a group, Pause answers when it's mentioned or someone replies to it.
+  // With privacy mode on, Telegram only delivers those messages anyway.
+  b.on("message:text", async (ctx, next) => {
+    if (ctx.chat.type === "private") return next();
+    const text = ctx.message.text;
+    if (text.startsWith("/")) return next();
+    const me = (bot.botInfo?.username ?? "Pausenearai_bot").toLowerCase();
+    const mentioned = text.toLowerCase().includes(`@${me}`) || /^(hey |hi |ok )?pause\b[,:!]?/i.test(text);
+    const repliedToMe = ctx.message.reply_to_message?.from?.username?.toLowerCase() === me;
+    if (mentioned || repliedToMe) return chatWithPause(ctx);
+    return next();
   });
 
   b.command("ask", async (ctx) => {

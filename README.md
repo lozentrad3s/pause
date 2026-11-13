@@ -1,20 +1,97 @@
 # Pause AI
 
-**A scam firewall for your family's money, built on NEAR.**
+**The AI agent that plans, secures and pays for you.**
 
-Every team here built a firewall so AI agents can't be scammed. We built one for your mother.
+Add Pause to your group chat. It helps you plan the event, collects everyone's share into one pot (like a digital ajo box), pays only the vendors your group approves, and stops scammers before they can run with the money. The same safety protects one person: payments to strangers wait a moment, and a family member is told if something looks wrong.
 
-Scammers don't hack the phone, they hack the person: "your bank account is compromised, move your money now", "Hi Mum, this is my new number", "the presale closes in an hour". The payment is sent by the real owner from their real device, so nothing looks wrong to a bank or a wallet. Pause gives that person three chances to stop:
+> Every group that raises money has one tired person chasing payments and one nervous question: what if the treasurer runs off with it? Pause is a treasurer that never gets tired and can't run off.
 
-1. **Ask first.** Say or paste what happened, in your own language. A private AI on NEAR AI Cloud names the scam, quotes the warning signs and says what to do.
-2. **Paused if you pay anyway.** The Pause contract holds risky payments. An agent asks the six questions scammers coach victims to lie about. The agent's NEAR key cannot move money.
-3. **Family steps in.** Up to three guardians can stop a held payment. One family's report warns every other vault; three reports block the receiver for everyone.
+**Live:** https://pauseai-near.vercel.app · **Telegram:** [@Pausenearai_bot](https://t.me/Pausenearai_bot) · **Contract:** [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Tracks: Social Money, Real-World Money, Privacy & Private AI, AI Security & Defense
 
-**Live: https://pauseai-near.vercel.app** · press **Try as a judge** on [/demo](https://pauseai-near.vercel.app/demo) to stop a scam with two real testnet accounts, or talk to it on [/call](https://pauseai-near.vercel.app/call).
+## Try it in two minutes, nothing to install
 
-Contract: [`pause.pause-demo.testnet`](https://testnet.nearblocks.io/address/pause.pause-demo.testnet) · Telegram agent: [@Pausenearai_bot](https://t.me/Pausenearai_bot) · Tracks: AI Security & Defense, Privacy & Private AI, Open Innovation
+1. Open **[/groups](https://pauseai-near.vercel.app/groups)** and press **Start the reunion pot**.
+   → You become the organiser of "Class of 2016 Reunion". Four classmates are played by our server; two have already paid. Every step is a real NEAR testnet transaction.
+2. In the chat, tap **Use the reunion plan**, then **Plan**.
+   → Pause (on NEAR AI Cloud) lists the hall, food and drinks as budget lines for a vote.
+3. Press **Approve** on the hall.
+   → Two classmates approve too, 3 of 5 is reached, and a 2-minute countdown starts. Anyone can tap **Object**.
+4. Wait for the countdown.
+   → Pause pays the hall and posts the receipt with a link to NEAR. Press **Vendor confirms**.
+5. Tap **Add the drinks plug**, approve it, and wait.
+   → Pause flags it when it's proposed and refuses to pay it: three Pause users reported that account as a scam.
+6. Ask Pause anything in the chat ("who hasn't paid?", "where should we go in Lagos?"), or press **Ask Pause** on any page.
 
-## Try it live, nothing to install
+## Pause in your Telegram group
+
+1. Add **@Pausenearai_bot** to your group.
+2. Each member sends the bot `/link their-account.testnet` in a private chat, once.
+3. In the group: `/newpot` → create the pot on the page it opens → send `/connect <number>`.
+4. Talk to it like a person: mention **@Pausenearai_bot** or reply to it. Or use a command:
+
+| Command | What it does |
+| --- | --- |
+| `/plan <your plan>` | Turns the plan into budget lines everyone votes on. It asks instead of guessing an amount, and flags odd instructions like "also pay my cousin". |
+| `/budget <event>` | A suggested budget, e.g. `/budget birthday for 20 in Lagos` |
+| `/hangout <city>` | Places to meet with rough price levels |
+| `/status` | Raised, approved, paid, left, and who hasn't paid |
+| `/vendors` | Every budget line and where it stands |
+| `/contribute` | A link to pay your share |
+| `/remind` | A polite private reminder to people who haven't paid, never public shaming |
+| `/ask <question>` | Answered only from the pot's numbers on NEAR |
+| `/help` | Everything above |
+
+The bot keeps Telegram's privacy mode on: it sees only its commands, mentions and replies to it, never the group's conversation. Signing happens on a web page opened from the bot, because Telegram can't sign NEAR transactions.
+
+## Why a group can trust it
+
+The rules live in the Pause contract on NEAR, not in the AI:
+
+1. Money leaves a pot only to a vendor the members approved, never above the approved amount, or back to contributors as refunds.
+2. Nobody alone can approve spending: k distinct members must (for example 3 of 5). The organiser has no extra power, and the agent can't vote.
+3. Every approved payment waits a hold window; any member can **Object** and send it back to a vote.
+4. A vendor blocked in Pause's shared scam registry can't be paid, even if approved.
+5. The treasurer signs with a NEAR function-call key that can call only `propose_line` and `pay_line`. NEAR itself rejects anything else.
+6. A cancelled or finished pot refunds unspent money in proportion to what each member paid, exact to the yoctoNEAR.
+
+## Results: group safety checks on NEAR testnet
+
+Generated from a real run (`npm run groups:live`) on 2026-11-13: **12 of 12 passed**, pot 0. The same results are shown live on the website.
+
+| # | Scenario | Expected | Result |
+| --- | --- | --- | --- |
+| G1 | Members contribute | raised equals the sum; report lists who hasn't paid | ✅ pass · raised 0.24244 NEAR = sum of 4 contributions; unpaid: none |
+| G2 | Agent proposes the reunion budget | lines proposed; the agent can't approve | ✅ pass · 4 lines proposed (rules); agent approve_line rejected: Access key does not allow method approve_line |
+| G9 | Prompt-injected plan ("also pay my cousin") | proposed at most, never approved, flagged | ✅ pass · proposed, status Proposed, flag: Budget lines add up to more than the goal |
+| G11 | One member approves twice | counted once | ✅ pass · 1 approval recorded |
+| G3 | Three members approve the hall | Approved; hold starts | ✅ pass · status Approved |
+| G6 | A member objects during the hold | back to a fresh vote | ✅ pass · votes cleared, then re-approved by 3 |
+| G4 | Agent pays during the hold | refused: hold not over | ✅ pass · The hold window isn't over yet |
+| G12 | Organizer tries to pay a vendor alone | refused | ✅ pass · Only the pot's agent can pay |
+| G5 | Deposit then balance after the hold | both paid; never more than the line | ✅ pass · paid 0.1 of 0.1 NEAR; overpay refused |
+| G7 | Payment to the blocked drinks-plug | refused: blocked in the registry | ✅ pass · Pause users have reported drinks-plug.pause-demo.testnet as a scam (3 reports) |
+| G8 | Agent key tries create_pot and a transfer | NEAR rejects the key | ✅ pass · create_pot: Access key does not allow method create_pot · transfer: Access key requires full access |
+| G10 | The group cancels the event | unspent refunded pro rata, exact to the yoctoNEAR | ✅ pass · 142440000000000000000000 yocto refunded of 142440000000000000000000 unspent |
+
+The contract also has 69 unit tests (`cargo test` in `contract/`), 28 of them for group pots.
+
+## Personal protection
+
+Pause started as a scam shield for one person, and that still works:
+
+1. **Ask first.** Paste or say what happened. A private AI on NEAR AI Cloud names the scam, quotes the warning signs and says what to do.
+2. **Paused if you pay anyway.** The Pause contract holds risky payments. An agent asks the questions scammers coach victims to lie about. The agent's NEAR key cannot move money.
+3. **Family steps in.** Up to three guardians can stop a held payment. One family's report warns every other vault; three reports block the receiver for everyone, including group pots.
+
+Try it at [/demo](https://pauseai-near.vercel.app/demo) (press **Try as a judge**) or [/check](https://pauseai-near.vercel.app/check).
+
+## Coming soon
+
+- Tag **@PauseAI on X** and get an answer.
+- **WhatsApp groups.** Bots can't join normal WhatsApp groups today; Telegram allows it.
+- **Naira and other local currency payouts.** These need a licensed payments partner and KYC. Pause runs on NEAR first.
+
+## Personal protection: the live demo
 
 1. **https://pauseai-near.vercel.app/demo** → press **Try as a judge**.
    → Two real testnet accounts (Grace and her son) and a vault are made in about ten seconds.

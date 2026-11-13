@@ -198,9 +198,10 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
   });
 
   const sendAsk = () => run("Asking", async () => {
-    push({ from: "me", html: `/ask ${esc(ask)}` });
-    const r = await api<{ answer: string }>({ action: "ask", pot: potId, q: ask });
-    push({ from: "bot", html: `🔎 ${esc(r.answer)}<br/><i>From the contract on NEAR.</i>` });
+    push({ from: "me", html: esc(ask) });
+    const history = msgs.filter((m) => m.from !== "member").slice(-10).map((m) => ({ role: m.from === "me" ? "user" : "assistant", content: m.html.replace(/<[^>]+>/g, " ") }));
+    const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pot: potId, messages: [...history, { role: "user", content: ask }] }) }).then((x) => x.json());
+    push({ from: "bot", html: esc(r.reply ?? r.error ?? "Sorry, try again.").replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/\n/g, "<br/>") });
     setAsk("");
   });
 
@@ -281,7 +282,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
                 <button className="btn small-btn" onClick={sendPlan} disabled={!!busy || plan.length < 10}>Plan</button>
               </div>
               <div className="composer-row">
-                <input aria-label="Ask" placeholder="/ask How much is left?" value={ask} onChange={(e) => setAsk(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask && sendAsk()} />
+                <input aria-label="Ask" placeholder="Ask Pause anything: who hasn't paid? where should we go?" value={ask} onChange={(e) => setAsk(e.target.value)} onKeyDown={(e) => e.key === "Enter" && ask && sendAsk()} />
                 <button className="btn small-btn" onClick={sendAsk} disabled={!!busy || !ask}>Ask</button>
               </div>
               <div className="quick">

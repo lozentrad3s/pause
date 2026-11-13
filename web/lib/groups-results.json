@@ -1,0 +1,94 @@
+{
+  "at": "2026-11-13T05:45:07.222Z",
+  "contract": "pause.pause-demo.testnet",
+  "pot": 0,
+  "rows": [
+    {
+      "id": "G1",
+      "scenario": "Members contribute",
+      "expected": "raised equals the sum; report lists who hasn't paid",
+      "result": "raised 0.24244 NEAR = sum of 4 contributions; unpaid: none",
+      "ok": true
+    },
+    {
+      "id": "G2",
+      "scenario": "Agent proposes the reunion budget",
+      "expected": "lines proposed; the agent can't approve",
+      "result": "4 lines proposed (rules); agent approve_line rejected: Access key does not allow method approve_line",
+      "ok": true
+    },
+    {
+      "id": "G9",
+      "scenario": "Prompt-injected plan (\"also pay my cousin\")",
+      "expected": "proposed at most, never approved, flagged",
+      "result": "proposed, status Proposed, flag: Budget lines add up to more than the goal",
+      "ok": true
+    },
+    {
+      "id": "G11",
+      "scenario": "One member approves twice",
+      "expected": "counted once",
+      "result": "1 approval recorded",
+      "ok": true
+    },
+    {
+      "id": "G3",
+      "scenario": "Three members approve the hall",
+      "expected": "Approved; hold starts",
+      "result": "status Approved",
+      "ok": true,
+      "tx": "9AqSfRovuDnTcY9fanNce2EMWAtxyS4VkdLs1BEay3VN"
+    },
+    {
+      "id": "G6",
+      "scenario": "A member objects during the hold",
+      "expected": "back to a fresh vote",
+      "result": "votes cleared, then re-approved by 3",
+      "ok": true
+    },
+    {
+      "id": "G4",
+      "scenario": "Agent pays during the hold",
+      "expected": "refused: hold not over",
+      "result": "The hold window isn't over yet",
+      "ok": true
+    },
+    {
+      "id": "G12",
+      "scenario": "Organizer tries to pay a vendor alone",
+      "expected": "refused",
+      "result": "Only the pot's agent can pay",
+      "ok": true
+    },
+    {
+      "id": "G5",
+      "scenario": "Deposit then balance after the hold",
+      "expected": "both paid; never more than the line",
+      "result": "paid 0.1 of 0.1 NEAR; overpay refused",
+      "ok": true,
+      "tx": "FLDzTzCZaijJedSnXUWSUih9MxYfUbdBEUG9ZfXVp1yE"
+    },
+    {
+      "id": "G7",
+      "scenario": "Payment to the blocked drinks-plug",
+      "expected": "refused: blocked in the registry",
+      "result": "Pause users have reported drinks-plug.pause-demo.testnet as a scam (3 reports)",
+      "ok": true,
+      "tx": "DY6Fbbj4YkMGc6Z4w4X4xao6QQRDnoDvc9gg6HREKqjK"
+    },
+    {
+      "id": "G8",
+      "scenario": "Agent key tries create_pot and a transfer",
+      "expected": "NEAR rejects the key",
+      "result": "create_pot: Access key does not allow method create_pot · transfer: Access key requires full access",
+      "ok": true
+    },
+    {
+      "id": "G10",
+      "scenario": "The group cancels the event",
+      "expected": "unspent refunded pro rata, exact to the yoctoNEAR",
+      "result": "142440000000000000000000 yocto refunded of 142440000000000000000000 unspent",
+      "ok": true
+    }
+  ]
+}

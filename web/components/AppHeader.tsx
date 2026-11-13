@@ -11,8 +11,6 @@ import { useWallet } from "@/lib/wallet";
 const LINKS = [
   { href: "/", label: "Home" },
   { href: "/groups", label: "Groups" },
-  { href: "/demo", label: "Try it" },
-  { href: "/call", label: "Call Pause" },
   { href: "/check", label: "Check a message" },
   { href: "/vault", label: "My vault" },
   { href: "/guardian", label: "Guardian" },

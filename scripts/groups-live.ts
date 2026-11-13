@@ -179,7 +179,9 @@ async function main() {
   const ok = rows.filter((r) => r.ok).length;
   console.log(`\n${paint(1, `${ok} of ${rows.length} group scenarios passed on testnet`)}  pot ${pot}\n`);
   mkdirSync(resolve(ROOT, "docs"), { recursive: true });
-  writeFileSync(resolve(ROOT, "docs/groups-results.json"), JSON.stringify({ at: new Date().toISOString(), contract: CONTRACT, pot, rows }, null, 2));
+  const out = JSON.stringify({ at: new Date().toISOString(), contract: CONTRACT, pot, rows }, null, 2);
+  writeFileSync(resolve(ROOT, "docs/groups-results.json"), out);
+  writeFileSync(resolve(ROOT, "web/lib/groups-results.json"), out);
   process.exit(ok === rows.length ? 0 : 1);
 }
 

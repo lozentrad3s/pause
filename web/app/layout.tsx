@@ -4,11 +4,13 @@ import "./globals.css";
 import "./v2.css";
 import "./app.css";
 import "./groups.css";
+import "./landing.css";
 import "./pause.css";
 import "./brand.css";
 import { LangProvider } from "@/lib/lang";
 import { WalletProvider } from "@/lib/wallet";
 import AppHeader from "@/components/AppHeader";
+import ChatWidget from "@/components/ChatWidget";
 
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif", style: ["normal", "italic"] });
@@ -41,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <WalletProvider>
             <AppHeader />
             {children}
+          <ChatWidget />
           </WalletProvider>
         </LangProvider>
       </body>
