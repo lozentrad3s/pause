@@ -168,6 +168,29 @@ if (OFFLINE) {
       return p.receiver_id === CONTRACT && p.method_names.some((m: string) => !["set_risk", "extend_hold"].includes(m));
     });
     check(wide.length === 0, "No agent function-call key allows any other method");
+    check(!keys.keys.some((k: any) => k.access_key.permission === "FullAccess"), "Agent account has no full-access key", "NEAR itself limits it to two methods");
+
+    // Pause Groups: the treasurer that pays approved vendors.
+    heading("4. Pause Groups on NEAR testnet (read-only)");
+    const TREASURER = process.env.POT_AGENT_ACCOUNT || "treasurer.pause-demo.testnet";
+    const tkeys = await rpc("query", { request_type: "view_access_key_list", finality: "final", account_id: TREASURER });
+    const tscoped = tkeys.keys.filter((k: any) => k.access_key.permission?.FunctionCall);
+    check(
+      tscoped.length > 0 && tscoped.every((k: any) => k.access_key.permission.FunctionCall.receiver_id === CONTRACT && [...k.access_key.permission.FunctionCall.method_names].sort().join() === "pay_line,propose_line"),
+      "Treasurer key limited to propose_line and pay_line",
+      TREASURER,
+    );
+    check(!tkeys.keys.some((k: any) => k.access_key.permission === "FullAccess"), "Treasurer account has no full-access key", "it can't vote, create pots or move money any other way");
+    const pot0 = await view("get_pot", { pot_id: 0 });
+    check(!!pot0 && Array.isArray(pot0.members), "Group pots are deployed and readable", pot0 ? `pot 0: ${pot0.name}` : "");
+    const plug = await view("get_registry_status", { receiver: "drinks-plug.pause-demo.testnet" });
+    check(plug.level === "blocked", "Demo scam vendor is hard-blocked in the registry", `${plug.reports} reports`);
+    const groupsFile = resolve(ROOT, "web/lib/groups-results.json");
+    if (existsSync(groupsFile)) {
+      const g = JSON.parse(readFileSync(groupsFile, "utf8"));
+      const ok = g.rows.filter((r: any) => r.ok).length;
+      check(ok === g.rows.length, "Last live run of G1-G12 (npm run groups:live)", `${ok} of ${g.rows.length} passed on ${String(g.at).slice(0, 10)}, pot ${g.pot}`);
+    }
   } catch (e) {
     check(false, "Reach NEAR testnet", `${(e as Error).message}. Run with OFFLINE=1 to skip the live checks.`);
   }

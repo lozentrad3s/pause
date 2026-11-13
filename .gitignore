@@ -14,3 +14,10 @@ video/out/
 video/audio/
 .railway-state.json
 .railway-state.token
+
+# Raw footage and source images stay local (the screen recording shows private chats)
+video/clips/*.mp4
+video/clips/*.MP4
+video/clips/*.mov
+/*.jpg
+/Good trips*
