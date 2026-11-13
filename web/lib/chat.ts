@@ -62,7 +62,7 @@ export async function pauseReply(history: Turn[], opts: ReplyOpts = {}): Promise
   return (await pauseAnswer(history, opts)).text;
 }
 
-const SEARCH_WORDS = /(find|search|scout|look up|look for|recommend|suggest|best|cheap|cheapest|affordable|hotel|hotels|airbnb|bnb|b&b|hostel|apartment|villa|venue|venues|hall|restaurant|lounge|club|bar|beach|resort|price|prices|how much|cost|flight|flights|ticket|tickets|where can|where to|book|booking|rent)/i;
+const SEARCH_WORDS = /\b(find|search|scout|look up|look for|recommend|suggest|best|cheap|cheapest|affordable|hotel|hotels|airbnb|bnb|b&b|hostel|apartment|villa|venue|venues|hall|restaurant|lounge|club|bar|beach|resort|price|prices|how much|cost|flight|flights|ticket|tickets|where can|where to|book|booking|rent)\b/i;
 
 type Found = { results: { title: string; url: string; content: string }[]; images: { url: string; description?: string }[] };
 
