@@ -14,9 +14,13 @@ The rules live in a contract on NEAR, not in the AI. Pause's own key can only pr
 
 It's live on the web and in Telegram today.
 
+## Pitch video
+
+`video/out/pause-pitch.mp4`: about 1 minute 17 seconds, 1080p. Opens on the problem and the market (onchain communities planning in Telegram), then the real Telegram group, a live venue search with Google ratings, budgets and photos, French and Yoruba, the pot paying a vendor and refusing a scammer. Rebuild with `node video/make-pitch.mjs` (`--rerecord` to record the website scenes again). The Telegram scene uses only the parts of the screen recording without private chats.
+
 ## Demo video
 
-`video/out/pause-groups-demo.mp4`: 1 minute 55 seconds, 1080p, recorded from the live site with real NEAR testnet transactions. The two-minute approval window and the seconds spent waiting for transactions are cut out of the picture.
+`video/out/pause-groups-demo.mp4`: 2 minutes 13 seconds, including a question answered in French, 1080p, recorded from the live site with real NEAR testnet transactions. The two-minute approval window and the seconds spent waiting for transactions are cut out of the picture.
 
 Re-record any time (the live site must be up): `node video/make-groups.mjs`
 

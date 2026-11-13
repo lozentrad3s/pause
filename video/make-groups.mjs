@@ -146,6 +146,13 @@ await waitFor(`[...document.querySelectorAll(".fmsg.bot .fbubble")].slice(-1)[0]
 await scrollTo(".feed-card", "start");
 await sleep(3000);
 
+await say("It answers in your language too. Here's the same question in French.");
+await typeInto('input[aria-label="Ask"]', "Qui a payé, et combien reste-t-il dans la cagnotte ?");
+await tap("Ask");
+await cut(() => waitFor(`[...document.querySelectorAll(".fmsg.bot .fbubble")].slice(-1)[0]?.textContent.length > 40 && !document.querySelector(".fbubble.typing")`, 60000));
+await scrollTo(".feed-card", "start");
+await sleep(3500);
+
 await say("NEAR enforces the rules: Pause's own key can only propose, and pay what members approved.");
 await go("/");
 await sleep(800);
