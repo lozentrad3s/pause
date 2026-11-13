@@ -35,4 +35,4 @@ Re-record any time (the live site must be up): `node video/make-groups.mjs`
 >
 > @NEARProtocol #NEARHackathon @NearLegion @NearBuilders
 
-(277 characters before the links and tags is too long for one standard post; if your account isn't Premium, post the first two paragraphs with the video, then the rest as a reply.)
+This is longer than one standard post (280 characters). Without X Premium, post the first two paragraphs with the video, then the rest as a reply.
