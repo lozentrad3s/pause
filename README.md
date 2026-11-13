@@ -350,7 +350,7 @@ All code was written during NEAR HACKATHON (1–14 November 2026); the first com
 
 ## Other project by the same team
 
-Keycard: API access as an NFT, with the provider's key sealed in an OutLayer TEE. A separate, independent submission.
+Disclosed under rule Q-015: the same team also submitted **Keycard** (https://github.com/lozentrad3s/keycard), API access sold as an NFT. It is an independent project: separate repository, contracts, accounts and deployment, with no shared code.
 
 ## License
 
