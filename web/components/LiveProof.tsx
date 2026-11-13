@@ -42,18 +42,18 @@ export default function LiveProof() {
   }, []);
 
   const tiles = [
-    { v: d ? String(d.pots) : "–", l: "group pots created" },
-    { v: d ? `${fmt(d.raised)} NEAR` : "–", l: "saved by groups" },
-    { v: d ? `${fmt(d.paid)} NEAR` : "–", l: "paid to approved vendors" },
-    { v: d ? String(d.refused + d.stats.blocked_by_registry) : "–", l: "payments to scammers stopped" },
+    { v: d ? String(d.pots) : "…", l: "Group pots created" },
+    { v: d ? `${fmt(d.raised)} NEAR` : "…", l: "Saved by groups" },
+    { v: d ? `${fmt(d.paid)} NEAR` : "…", l: "Paid to approved vendors" },
+    { v: d ? String(d.refused + d.stats.blocked_by_registry) : "…", l: "Payments to scammers stopped" },
   ];
 
   return (
-    <div className="lp-proof">
+    <dl className="lp-proof" aria-busy={!d && !failed}>
       {tiles.map((t) => (
-        <div key={t.l}><b className="figure">{t.v}</b><span>{t.l}</span></div>
+        <div key={t.l}><dt>{t.l}</dt><dd className="figure">{t.v}</dd></div>
       ))}
       {failed && <p className="small muted">NEAR testnet is slow right now. Refresh in a moment.</p>}
-    </div>
+    </dl>
   );
 }

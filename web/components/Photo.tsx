@@ -23,7 +23,7 @@ export default function Photo({
 }) {
   return (
     <figure className={`photo ${className}`} style={{ aspectRatio: ratio }}>
-      <Image src={`/img/${name}.webp`} alt={alt} fill sizes={sizes} priority={priority} style={{ objectFit: "cover", objectPosition: pos }} />
+      <Image src={/\.(jpe?g|png|webp)$/.test(name) ? `/img/${name}` : `/img/${name}.webp`} alt={alt} fill sizes={sizes} priority={priority} style={{ objectFit: "cover", objectPosition: pos }} />
       {children}
     </figure>
   );
