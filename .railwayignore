@@ -1,0 +1,5 @@
+video/
+contract/target/
+web/.next/
+*.jpg
+design-sources/

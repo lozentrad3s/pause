@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { pauseReply, type Turn } from "@/lib/chat";
+import { pauseAnswer, type Turn } from "@/lib/chat";
 import { clientIp, limited } from "@/lib/server";
 
 export const runtime = "nodejs";
@@ -21,6 +21,6 @@ export async function POST(req: Request) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }));
   if (!messages.length || messages[messages.length - 1].role !== "user") return NextResponse.json({ error: "Say something first." }, { status: 400 });
   const pot = typeof body.pot === "number" && body.pot >= 0 ? body.pot : null;
-  const reply = await pauseReply(messages, { potId: pot, where: "web" });
-  return NextResponse.json({ reply });
+  const a = await pauseAnswer(messages, { potId: pot, where: "web" });
+  return NextResponse.json({ reply: a.text, images: a.images, sources: a.sources });
 }

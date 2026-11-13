@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWallet } from "@/lib/wallet";
 import { useNow } from "@/components/HoldCard";
 import { txUrl } from "@/lib/near";
-import { api, display, fmt, getLines, getPot, getReport, loadGroupGuest, makeSigner, short, type Line, type Pot, type Report } from "@/lib/groups-client";
+import { api, display, fmt, toYocto, getLines, getPot, getReport, loadGroupGuest, makeSigner, short, type Line, type Pot, type Report } from "@/lib/groups-client";
 
 interface Caps { treasurer: string | null; demo: boolean; members: string[]; blocked_vendor: string; plan: string; ai: boolean }
 interface Msg { id: string; from: "bot" | "me" | "member"; who?: string; html: string; tx?: string | null; at: number }
@@ -28,6 +28,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
   const [busy, setBusy] = useState("");
   const [plan, setPlan] = useState("");
   const [ask, setAsk] = useState("");
+  const [addAmount, setAddAmount] = useState("");
   const [tab, setTab] = useState<"chat" | "pot">("chat");
   const snap = useRef<Snap | null>(null);
   const hashes = useRef(new Map<number, string>());
@@ -169,11 +170,17 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
     return r.hash;
   };
 
-  const contribute = () => run("Paying your share", async () => {
-    const share = pot?.contribution_each ?? "0";
-    if (BigInt(share) === 0n) throw new Error("This pot has no fixed share.");
-    const h = await sign("contribute", { pot_id: potId }, share, `Paying my share: ${fmt(share)} NEAR`);
-    push({ from: "bot", html: "Signed on NEAR.", tx: h });
+  const contribute = (amountNear?: string) => run("Adding money", async () => {
+    let yocto: string;
+    try {
+      yocto = amountNear ? toYocto(amountNear) : pot?.contribution_each ?? "0";
+    } catch {
+      throw new Error("Enter an amount like 0.1");
+    }
+    if (BigInt(yocto) <= 0n) throw new Error("Enter an amount above zero.");
+    const h = await sign("contribute", { pot_id: potId }, yocto, `Adding ${fmt(yocto)} NEAR to the pot`);
+    push({ from: "bot", html: "Added on NEAR.", tx: h });
+    setAddAmount("");
   });
 
   const vote = (l: Line, kind: "approve_line" | "reject_line" | "object") => run("Voting", async () => {
@@ -252,6 +259,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
           <h1>{pot.name}</h1>
           <p className="muted">{({ Raising: "Collecting money", Spending: "Paying vendors", Closed: "Finished", Cancelled: "Cancelled" } as Record<string, string>)[pot.status]} · {pot.approvals_needed} of {pot.members.length} must approve each payment · {Math.round(pot.hold_secs / 60)} min to object · treasurer <code>{short(pot.agent)}</code></p>
         </div>
+        <a className="btn small-btn tg-move" href={`https://t.me/Pausenearai_bot?startgroup=pot_${pot.id}`} target="_blank" rel="noreferrer">Move this group to Telegram</a>
         <div className="seg room-tabs" role="tablist">
           <button className={tab === "chat" ? "on" : ""} onClick={() => setTab("chat")}>Chat</button>
           <button className={tab === "pot" ? "on" : ""} onClick={() => setTab("pot")}>Pot</button>
@@ -305,7 +313,14 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
               <div><dt>Approved, waiting</dt><dd className="figure">{report ? fmt(report.approved) : "–"}</dd></div>
               <div><dt>Not promised yet</dt><dd className="figure">{report ? fmt(report.uncommitted) : "–"}</dd></div>
             </dl>
-            {owes && open && <button className="btn primary" onClick={contribute} disabled={!!busy}>Pay my share · {fmt(pot.contribution_each!)} NEAR</button>}
+            {owes && open && <button className="btn primary" onClick={() => contribute()} disabled={!!busy}>Pay my share · {fmt(pot.contribution_each!)} NEAR</button>}
+            {isMember && open && (
+              <form className="add-money" onSubmit={(e) => { e.preventDefault(); contribute(addAmount); }}>
+                <label htmlFor="add-amt" className="sr-only">Amount in NEAR</label>
+                <input id="add-amt" inputMode="decimal" placeholder="Amount in NEAR" value={addAmount} onChange={(e) => setAddAmount(e.target.value)} />
+                <button className="btn" disabled={!!busy || !addAmount}>Add money</button>
+              </form>
+            )}
             {BigInt(refund) > 0n && <button className="btn primary" onClick={claim} disabled={!!busy}>Claim my refund · {fmt(refund)} NEAR</button>}
           </div>
 

@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-interface M { role: "user" | "assistant"; content: string }
+interface M { role: "user" | "assistant"; content: string; images?: { url: string; caption: string }[]; sources?: { title: string; url: string }[] }
 
 const STARTERS = ["Plan a birthday for 15 friends", "Hangout spots in Lagos under 10k each", "How does a group pot work?", "Is this message a scam?"];
 
 /** Very small markdown: bold and list bullets, safely escaped. */
 function render(t: string) {
   const esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return esc.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^#{1,4}\s*(.+)$/gm, "<b>$1</b>").replace(/^\s*[-*•]\s+/gm, "• ").replace(/\n/g, "<br/>");
+  return esc.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/^#{1,4}\s*(.+)$/gm, "<b>$1</b>").replace(/^\s*[-*•]\s+/gm, "• ").replace(/\(link: (https?:\/\/[^\s)]+)\)/g, '<a href="$1" target="_blank" rel="noreferrer">link</a>').replace(/\n/g, "<br/>");
 }
 
 export default function ChatWidget() {
@@ -67,9 +67,9 @@ export default function ChatWidget() {
     setText("");
     setBusy(true);
     try {
-      const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: next, pot: Number.isFinite(pot) ? pot : null }) });
+      const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: next.map(({ role, content }) => ({ role, content })), pot: Number.isFinite(pot) ? pot : null }) });
       const d = await r.json();
-      setMsgs([...next, { role: "assistant", content: d.reply ?? d.error ?? "Sorry, I didn't catch that." }]);
+      setMsgs([...next, { role: "assistant", content: d.reply ?? d.error ?? "Sorry, I didn't catch that.", images: d.images ?? [], sources: d.sources ?? [] }]);
     } catch {
       setMsgs([...next, { role: "assistant", content: "I couldn't reach the network. Please try again." }]);
     } finally {
@@ -111,7 +111,20 @@ export default function ChatWidget() {
             )}
             {msgs.map((m, i) => (
               <div key={i} className={`fmsg ${m.role === "user" ? "me" : "bot"}`}>
-                <div className="fbubble" dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+                <div className="fbubble">
+                  <span dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+                  {m.images && m.images.length > 0 && (
+                    <div className="chat-photos">
+                      {m.images.map((im) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <a key={im.url} href={im.url} target="_blank" rel="noreferrer"><img src={im.url} alt={im.caption || "Photo from the web"} loading="lazy" referrerPolicy="no-referrer" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = "none")} /></a>
+                      ))}
+                    </div>
+                  )}
+                  {m.sources && m.sources.length > 0 && (
+                    <div className="chat-sources">{m.sources.map((s) => <a key={s.url} href={s.url} target="_blank" rel="noreferrer">{s.title}</a>)}</div>
+                  )}
+                </div>
               </div>
             ))}
             {busy && <div className="fmsg bot"><div className="fbubble typing">Pause is typing…</div></div>}

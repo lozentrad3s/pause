@@ -19,7 +19,8 @@ const STORE = "pause-group-guest-v1";
 
 export function loadGroupGuest(): GroupGuest | null {
   try {
-    const raw = sessionStorage.getItem(STORE);
+    // Kept in this browser (localStorage), so a pot survives refreshes and new tabs.
+    const raw = localStorage.getItem(STORE) ?? sessionStorage.getItem(STORE);
     return raw ? (JSON.parse(raw) as GroupGuest) : null;
   } catch {
     return null;
@@ -28,8 +29,8 @@ export function loadGroupGuest(): GroupGuest | null {
 
 export function saveGroupGuest(g: GroupGuest | null) {
   try {
-    if (g) sessionStorage.setItem(STORE, JSON.stringify(g));
-    else sessionStorage.removeItem(STORE);
+    if (g) localStorage.setItem(STORE, JSON.stringify(g));
+    else localStorage.removeItem(STORE);
   } catch {
     // Storage can be refused in private windows; the session still works until reload.
   }
@@ -69,3 +70,33 @@ export function fmt(y: string | bigint): string {
 }
 export const short = (a: string) => a.split(".")[0];
 export const display = (a: string) => short(a).replace(/-[0-9a-f]{8}$/, "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+export const NEAR_ACCOUNT = /^[a-z0-9][a-z0-9_-]*(\.[a-z0-9_-]+)*\.(testnet|near)$/;
+
+export interface Invitee {
+  label: string; // what the organizer typed: a name, email or phone number
+  contact?: string; // email or phone, for the share buttons
+  account?: string; // NEAR account, once known
+  key?: string; // secret key for a new account, only for the invite link
+}
+
+/** Splits "Ada ada@mail.com, +2348012345678, tunde.testnet" into invitees. */
+export function parseInvitees(text: string): Invitee[] {
+  return text
+    .split(/[\n,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, 11)
+    .map((x) => {
+      const low = x.toLowerCase();
+      if (NEAR_ACCOUNT.test(low)) return { label: low, account: low };
+      const email = x.match(/[^\s@]+@[^\s@]+\.[^\s@]+/)?.[0];
+      const phone = x.match(/\+?\d[\d\s-]{6,}\d/)?.[0]?.replace(/[\s-]/g, "");
+      const name = x.replace(email ?? "", "").replace(phone ?? "", "").trim();
+      return { label: name || email || phone || x, contact: email || phone };
+    });
+}
+
+export function inviteLink(base: string, inv: Invitee, pot: number): string {
+  return `${base}/join#a=${encodeURIComponent(inv.account!)}&k=${encodeURIComponent(inv.key!)}&p=${pot}`;
+}

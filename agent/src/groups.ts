@@ -18,7 +18,7 @@ import {
   type Line,
   type Pot,
 } from "../../web/lib/treasurer";
-import { pauseReply, type Turn } from "../../web/lib/chat";
+import { pauseAnswer, type Turn } from "../../web/lib/chat";
 import { store } from "./store";
 
 // ------------------------------------------------------------- conversation
@@ -49,22 +49,35 @@ export async function chatWithPause(ctx: Context, textOverride?: string) {
   remember(chatId, { role: "user", content: raw, name: group ? speaker(ctx) : undefined });
   await ctx.replyWithChatAction("typing").catch(() => {});
   const potIds = store.potsOf(chatId);
-  const reply = await pauseReply(history.get(chatId) ?? [], {
+  const answer = await pauseAnswer(history.get(chatId) ?? [], {
     potId: potIds.length ? potIds[potIds.length - 1] : null,
     where: group ? "telegram-group" : "telegram-private",
   });
-  remember(chatId, { role: "assistant", content: reply });
-  return ctx.reply(toHtml(reply), {
+  remember(chatId, { role: "assistant", content: answer.text });
+  // Photos from a live search go first, as one album, then the answer with its links.
+  if (answer.images.length) {
+    await ctx
+      .replyWithMediaGroup(answer.images.slice(0, 4).map((im) => ({ type: "photo" as const, media: im.url, caption: im.caption.slice(0, 200) || undefined })))
+      .catch(() => {});
+  }
+  const html = toHtml(answer.text).replace(/\(link: (https?:\/\/[^\s)]+)\)/g, '(<a href="$1">link</a>)');
+  return ctx.reply(html.slice(0, 4000), {
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     ...(ctx.message ? { reply_parameters: { message_id: ctx.message.message_id, allow_sending_without_reply: true } } : {}),
   });
 }
 
+// Groups where Pause joins in on questions without being tagged (on by default).
+const quiet = new Set<number>();
+const lastUnprompted = new Map<number, number>();
+const QUESTION = /\?\s*$|^(who|what|where|when|why|how|which|can|could|should|would|is|are|do|does|did|will|has|have|any|anyone)\b/i;
+const TOPIC = /\b(pay|paid|pot|money|naira|near|budget|plan|planning|party|trip|wedding|reunion|birthday|hangout|venue|hotel|airbnb|bnb|food|drinks|cost|price|how much|contribut|owe|share|vendor|book|where|when|scam|safe|save|saving|ajo|esusu|ticket|flight)\b/i;
+
 const HELP = [
   "<b>Pause, your group's planner and treasurer</b>",
   "",
-  "<b>Talk to me</b>: mention @Pausenearai_bot or reply to my message. Ask me to plan, budget, or find a hangout spot.",
+  "<b>Talk to me</b>: ask the group a question about plans, money or places and I'll join in. Or mention @Pausenearai_bot. I can search the web for hotels, Airbnbs and venues, with prices and photos.",
   "",
   "<b>Plan</b>",
   "/budget &lt;event&gt; · a suggested budget, e.g. /budget birthday for 20 in Lagos",
@@ -78,6 +91,7 @@ const HELP = [
   "/status · raised, paid, left, who hasn't paid",
   "/vendors · every budget line and where it stands",
   "/remind · gently remind people who haven't paid (privately)",
+  "/quiet · only answer when tagged · /active · join in on questions again",
   "/ask &lt;question&gt; · answered from the pot on NEAR",
   "",
   "<b>Stay safe</b>",
@@ -219,6 +233,34 @@ export function registerGroups(b: Bot) {
 
   b.command("help", (ctx) => ctx.reply(HELP, { parse_mode: "HTML" }));
 
+  b.command("quiet", (ctx) => {
+    quiet.add(ctx.chat.id);
+    return ctx.reply("Okay, I'll only answer when you mention me or reply to me. Send /active to have me join in again.");
+  });
+  b.command("active", (ctx) => {
+    quiet.delete(ctx.chat.id);
+    return ctx.reply("I'm back. I'll answer questions about plans, money and places without being tagged.");
+  });
+
+  // A group arriving from the website's "Move to Telegram" button: /start pot_<id>.
+  b.command("start", async (ctx, next) => {
+    const m = /^pot_(\d+)$/.exec(ctx.match.trim());
+    if (ctx.chat.type === "private" || !m) return next();
+    const id = Number(m[1]);
+    const pot = await getPot(id).catch(() => null);
+    if (!pot) return ctx.reply(`I can't find pot ${id} on NEAR.`);
+    store.followPot(ctx.chat.id, id);
+    store.setSnap(id, "");
+    await postChanges(ctx.chat.id, id);
+    const r = await getReport(id);
+    return ctx.reply(
+      `🤝 Hi everyone! I've brought <b>${esc(pot.name)}</b> over from the website. Everything lives on NEAR, so nothing was lost: raised ${fmt(r.raised)} of ${fmt(r.goal)} NEAR, paid ${fmt(r.paid)} NEAR.${r.unpaid_members.length ? ` Still to pay: ${r.unpaid_members.map(name).join(", ")}.` : ""}
+
+Ask me anything here, or try /status, /plan, /contribute.`,
+      { parse_mode: "HTML" },
+    );
+  });
+
   b.command("pause", (ctx) => chatWithPause(ctx, ctx.match));
 
   b.command("budget", (ctx) =>
@@ -329,6 +371,12 @@ export function registerGroups(b: Bot) {
     const mentioned = text.toLowerCase().includes(`@${me}`) || /^(hey |hi |ok )?pause\b[,:!]?/i.test(text);
     const repliedToMe = ctx.message.reply_to_message?.from?.username?.toLowerCase() === me;
     if (mentioned || repliedToMe) return chatWithPause(ctx);
+    // Join in on the group's questions about plans, money or places, without a tag.
+    if (!quiet.has(ctx.chat.id) && QUESTION.test(text.trim()) && TOPIC.test(text) && Date.now() - (lastUnprompted.get(ctx.chat.id) ?? 0) > 8000) {
+      lastUnprompted.set(ctx.chat.id, Date.now());
+      return chatWithPause(ctx);
+    }
+    remember(ctx.chat.id, { role: "user", content: text.slice(0, 500), name: speaker(ctx) });
     return next();
   });
 

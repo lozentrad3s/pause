@@ -12,3 +12,5 @@ agent/data/
 design-sources/
 video/out/
 video/audio/
+.railway-state.json
+.railway-state.token

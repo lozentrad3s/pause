@@ -20,6 +20,7 @@ What you do:
 How people use you:
 - Telegram group commands: /newpot (start a pot), /connect <number> (follow a pot), /plan <your plan in words> (I turn it into budget lines for a vote), /status, /vendors, /contribute, /ask <question>, /remind, /help. In a group, people talk to you by mentioning @Pausenearai_bot or replying to you.
 - Website: Groups (try a demo reunion with no wallet), Check a message (scam check), My vault (personal protection).
+- Scout: you can search the web live for hotels, Airbnbs, venues, restaurants and prices anywhere in the world, with photos and links, when the LIVE WEB RESULTS section has results.
 Style:
 - Warm, short and plain. Most replies are 1-4 sentences or a short list. No jargon: say "account" not "wallet address" unless asked, "approve" not "sign a transaction".
 - Never invent numbers about a pot. Use only the POT FACTS given; if there are none, say you can show them once the group connects a pot.
@@ -48,13 +49,64 @@ export async function potFacts(potId: number): Promise<string> {
   });
 }
 
-export async function pauseReply(history: Turn[], opts: { potId?: number | null; where?: "telegram-group" | "telegram-private" | "web"; apiKey?: string; model?: string } = {}): Promise<string> {
+export interface Answer {
+  text: string;
+  images: { url: string; caption: string }[];
+  sources: { title: string; url: string }[];
+}
+
+type ReplyOpts = { potId?: number | null; where?: "telegram-group" | "telegram-private" | "web"; apiKey?: string; model?: string };
+
+/** Text only, for callers that can't show pictures. */
+export async function pauseReply(history: Turn[], opts: ReplyOpts = {}): Promise<string> {
+  return (await pauseAnswer(history, opts)).text;
+}
+
+const SEARCH_WORDS = /(find|search|scout|look up|look for|recommend|suggest|best|cheap|cheapest|affordable|hotel|hotels|airbnb|bnb|b&b|hostel|apartment|villa|venue|venues|hall|restaurant|lounge|club|bar|beach|resort|price|prices|how much|cost|flight|flights|ticket|tickets|where can|where to|book|booking|rent)/i;
+
+/** Live web search with pictures (Tavily). Returns nothing if no key is set. */
+async function webSearch(query: string): Promise<{ results: { title: string; url: string; content: string }[]; images: { url: string; description?: string }[] } | null> {
+  const key = process.env.TAVILY_API_KEY;
+  if (!key) return null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    const r = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      signal: ctrl.signal,
+      body: JSON.stringify({ query: query.slice(0, 380), search_depth: "advanced", max_results: 6, include_images: true, include_image_descriptions: true }),
+    });
+    clearTimeout(timer);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return {
+      results: (d.results ?? []).slice(0, 6).map((x: { title: string; url: string; content: string }) => ({ title: String(x.title).slice(0, 120), url: String(x.url), content: String(x.content).slice(0, 700) })),
+      images: (d.images ?? []).map((i: string | { url: string; description?: string }) => (typeof i === "string" ? { url: i } : i)).filter((i: { url: string }) => /^https:\/\//.test(i.url)).slice(0, 4),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function pauseAnswer(history: Turn[], opts: ReplyOpts = {}): Promise<Answer> {
   const key = opts.apiKey ?? process.env.NEARAI_API_KEY;
   let facts = "";
   if (opts.potId !== undefined && opts.potId !== null) facts = await potFacts(opts.potId).catch(() => "");
-  if (!key) return fallback(history[history.length - 1]?.content ?? "");
+  const last = history[history.length - 1]?.content ?? "";
+  if (!key) return { text: fallback(last), images: [], sources: [] };
+  // Live web search when someone asks to find a place, a price or a booking.
+  let web: Awaited<ReturnType<typeof webSearch>> = null;
+  let webNote = "No live web search was needed for this message.";
+  if (SEARCH_WORDS.test(last)) {
+    const context = /\b(in|at|near)\b/i.test(last) ? "" : history.slice(-4, -1).map((t) => t.content).join(" ").slice(-300);
+    web = await webSearch(`${last} ${context}`.trim());
+    webNote = web
+      ? `LIVE WEB RESULTS (searched just now):\n${web.results.map((r, i) => `[${i + 1}] ${r.title} | ${r.url}\n${r.content}`).join("\n\n")}\nUse these for names, prices, areas and addresses. Put the link after each place, like (link: URL). Say prices change and should be checked before booking. If the results don't answer the question, say so.`
+      : "Live web search isn't available right now. Give general guidance and say you can't check live prices at the moment.";
+  }
   const messages = [
-    { role: "system", content: `${SYSTEM}\nYou are talking in: ${opts.where ?? "web"}.\nPOT FACTS (live from NEAR): ${facts || "none connected"}` },
+    { role: "system", content: `${SYSTEM}\nYou are talking in: ${opts.where ?? "web"}.\nPOT FACTS (live from NEAR): ${facts || "none connected"}\n${webNote}` },
     ...history.slice(-14).map((t) => ({ role: t.role, content: t.name ? `${t.name}: ${t.content}` : t.content })),
   ];
   try {
@@ -69,11 +121,17 @@ export async function pauseReply(history: Turn[], opts: { potId?: number | null;
     clearTimeout(timer);
     const data = await res.json();
     const text = String(data?.choices?.[0]?.message?.content ?? "").trim();
-    if (text) return text.slice(0, 3500);
+    if (text) {
+      return {
+        text: text.slice(0, 3500),
+        images: (web?.images ?? []).map((i) => ({ url: i.url, caption: (i.description ?? "").slice(0, 180) })),
+        sources: (web?.results ?? []).slice(0, 4).map((r) => ({ title: r.title, url: r.url })),
+      };
+    }
   } catch {
     // fall through
   }
-  return fallback(history[history.length - 1]?.content ?? "");
+  return { text: fallback(last), images: [], sources: [] };
 }
 
 function fallback(q: string): string {

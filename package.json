@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "postinstall": "npm --prefix web install --no-audit --no-fund",
+    "postinstall": "npm --prefix web install --no-audit --no-fund && npm --prefix agent install --no-audit --no-fund",
     "judge": "tsx scripts/judge.ts",
     "suite": "tsx scripts/judge.ts --write-readme",
     "dev": "npm --prefix web run dev",
@@ -14,7 +14,8 @@
     "test": "tsx scripts/judge.ts",
     "agent": "npm --prefix agent install --no-audit --no-fund && npm --prefix agent run start",
     "ai-check": "tsx scripts/ai-check.ts",
-    "groups:live": "tsx scripts/groups-live.ts"
+    "groups:live": "tsx scripts/groups-live.ts",
+    "start": "npm --prefix agent run start"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

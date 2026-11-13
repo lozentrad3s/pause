@@ -9,6 +9,7 @@ export const maxDuration = 60;
 
 const KEY = /^ed25519:[1-9A-HJ-NP-Za-km-z]{43,44}$/;
 const ORGANIZER_FUNDS = 300_000_000_000_000_000_000_000n; // 0.3 NEAR
+const MEMBER_FUNDS = 150_000_000_000_000_000_000_000n; // 0.15 NEAR
 
 /** What this deployment can do, so the page shows only buttons that work. */
 export async function GET() {
@@ -46,6 +47,24 @@ export async function POST(req: Request) {
         const organizer = `organizer-${tag}.${sponsor.accountId}`;
         const out = await sponsor.createSubAccount({ accountOrPrefix: organizer, publicKey: b.key!, nearToTransfer: ORGANIZER_FUNDS });
         return NextResponse.json({ organizer, members: Object.keys(DEMO_MEMBERS), agent: treasurer()?.accountId, tx: txHash(out) });
+      }
+      // Accounts for people invited by name, email or phone. The browser makes
+      // the key pairs; only public keys come here. Each gets a little testnet
+      // NEAR so they can pay their share.
+      case "invite": {
+        const sponsor = sponsorAccount();
+        if (!sponsor) return NextResponse.json({ error: "Invites aren't switched on here." }, { status: 503 });
+        const keys = Array.isArray((b as { keys?: unknown }).keys) ? ((b as { keys: string[] }).keys) : [];
+        if (!keys.length || keys.length > 8 || !keys.every((k) => KEY.test(k))) return NextResponse.json({ error: "Send 1 to 8 public keys." }, { status: 400 });
+        if (limited(`groups-invite:${clientIp(req)}`, 4, 10 * 60_000)) return NextResponse.json({ error: "You've sent a lot of invites. Try again in a few minutes." }, { status: 429 });
+        const accounts: string[] = [];
+        for (const k of keys) {
+          const tag = Array.from(crypto.getRandomValues(new Uint8Array(4)), (x) => x.toString(16).padStart(2, "0")).join("");
+          const id = `member-${tag}.${sponsor.accountId}`;
+          await sponsor.createSubAccount({ accountOrPrefix: id, publicKey: k, nearToTransfer: MEMBER_FUNDS });
+          accounts.push(id);
+        }
+        return NextResponse.json({ accounts });
       }
       case "plan":
         if (!b.text || b.text.length < 10) return NextResponse.json({ error: "Write the plan first." }, { status: 400 });
