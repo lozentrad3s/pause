@@ -44,7 +44,15 @@ function toHtml(text: string) {
 export async function chatWithPause(ctx: Context, textOverride?: string) {
   const chatId = ctx.chat!.id;
   const raw = (textOverride ?? ctx.message?.text ?? "").replace(new RegExp(`@${bot.botInfo?.username ?? "Pausenearai_bot"}`, "gi"), "").trim();
-  if (!raw) return ctx.reply("Yes? Ask me to plan something, check on the pot, or suggest a hangout spot.");
+  if (!raw) {
+    // Just a tag: answer the message it replies to, or this person's last message.
+    const replied = ctx.message?.reply_to_message;
+    const quoted = replied && "text" in replied ? replied.text : undefined;
+    const theirs = [...(history.get(chatId) ?? [])].reverse().find((t) => t.role === "user" && t.name === speaker(ctx))?.content;
+    const q = quoted ?? theirs;
+    if (q) return chatWithPause(ctx, q);
+    return ctx.reply("Yes? Ask me to plan something, find a venue or hotel, or check on the pot.");
+  }
   const group = ctx.chat!.type !== "private";
   remember(chatId, { role: "user", content: raw, name: group ? speaker(ctx) : undefined });
   await ctx.replyWithChatAction("typing").catch(() => {});

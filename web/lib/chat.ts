@@ -127,7 +127,7 @@ export async function pauseAnswer(history: Turn[], opts: ReplyOpts = {}): Promis
     const context = /\b(in|at|near)\b/i.test(last) ? "" : history.slice(-4, -1).map((t) => t.content).join(" ").slice(-300);
     web = await webSearch(`${last} ${context}`.trim());
     webNote = web
-      ? `LIVE WEB RESULTS (searched just now):\n${web.results.map((r, i) => `[${i + 1}] ${r.title} | ${r.url}\n${r.content}`).join("\n\n")}\nUse these for names, prices, areas and addresses. Put the link after each place, like (link: URL). Say prices change and should be checked before booking. If the results don't answer the question, say so.`
+      ? `LIVE WEB RESULTS (searched just now):\n${web.results.map((r, i) => `[${i + 1}] ${r.title} | ${r.url}\n${r.content}`).join("\n\n")}\nUse these for names, prices, areas and addresses. For each place give: the name in bold, the area, its rating if listed, a rough price or budget, and the link after it like (link: URL). Finish with a one-line budget suggestion for the group. Say prices change and should be checked before booking. If the results don't answer the question, say so.`
       : "Live web search isn't available right now. Give general guidance and say you can't check live prices at the moment.";
   }
   const messages = [
