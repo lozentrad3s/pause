@@ -11,6 +11,7 @@ interface Caps { treasurer: string | null; demo: boolean; members: string[]; blo
 interface Msg { id: string; from: "bot" | "me" | "member"; who?: string; html: string; tx?: string | null; at: number }
 interface Snap { status: string; contrib: Record<string, string>; lines: Record<string, { status: string; paid: string; note: string | null; refused: string | null; votes: number }> }
 
+const waitLabel = (secs: number) => (secs < 90 ? `${secs} seconds` : `${Math.round(secs / 60)} min`);
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const STAGES: string[] = ["Proposed", "Approved", "Waiting", "Paid", "Confirmed"];
 
@@ -64,7 +65,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
     snap.current = cur;
     const unpaid = r.unpaid_members.map(display).join(", ");
     if (!before) {
-      push({ from: "bot", html: `🤝 Pause is following <b>${esc(p.name)}</b>. ${p.approvals_needed} of ${p.members.length} members must approve every payment, and each approved payment waits ${Math.round(p.hold_secs / 60)} min so anyone can object.` });
+      push({ from: "bot", html: `🤝 Pause is following <b>${esc(p.name)}</b>. ${p.approvals_needed} of ${p.members.length} members must approve every payment, and each approved payment waits ${waitLabel(p.hold_secs)} so anyone can object.` });
       for (const [who, v] of p.contributions) push({ from: "bot", html: `💰 <b>${display(who)}</b> paid ${fmt(v)} NEAR.` });
       for (const l of ls) push({ from: "bot", html: lineSummary(l, p) });
       return;
@@ -81,7 +82,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
         continue;
       }
       if (l.status === "Proposed" && l.approvals.length > b.votes) push({ from: "bot", html: `🗳️ ${tag}: ${l.approvals.length} of ${p.approvals_needed} approvals.` });
-      if (b.status === "Proposed" && l.status === "Approved") push({ from: "bot", html: `✅ ${tag}, approved by ${l.approvals.length} of ${p.members.length}. Pays in about ${Math.round(p.hold_secs / 60)} min unless someone taps Object.` });
+      if (b.status === "Proposed" && l.status === "Approved") push({ from: "bot", html: `✅ ${tag}, approved by ${l.approvals.length} of ${p.members.length}. Pays in about ${waitLabel(p.hold_secs)} unless someone taps Object.` });
       if (b.status === "Approved" && l.status === "Proposed") push({ from: "bot", html: `✋ Someone objected to ${tag}. It goes back to a fresh vote.` });
       if (b.status === "Proposed" && l.status === "Rejected" && !l.refused) push({ from: "bot", html: `❌ The group rejected ${tag}.` });
       if (BigInt(l.paid) > BigInt(b.paid)) {
@@ -257,7 +258,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
       <header className="room-head">
         <div>
           <h1>{pot.name}</h1>
-          <p className="muted">{({ Raising: "Collecting money", Spending: "Paying vendors", Closed: "Finished", Cancelled: "Cancelled" } as Record<string, string>)[pot.status]} · {pot.approvals_needed} of {pot.members.length} must approve each payment · {Math.round(pot.hold_secs / 60)} min to object · treasurer <code>{short(pot.agent)}</code></p>
+          <p className="muted">{({ Raising: "Collecting money", Spending: "Paying vendors", Closed: "Finished", Cancelled: "Cancelled" } as Record<string, string>)[pot.status]} · {pot.approvals_needed} of {pot.members.length} must approve each payment · {waitLabel(pot.hold_secs)} to object · treasurer <code>{short(pot.agent)}</code></p>
         </div>
         <a className="btn small-btn tg-move" href={`https://t.me/Pausenearai_bot?startgroup=pot_${pot.id}`} target="_blank" rel="noreferrer">Move this group to Telegram</a>
         <div className="seg room-tabs" role="tablist">

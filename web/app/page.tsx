@@ -7,6 +7,17 @@ import results from "@/lib/groups-results.json";
 
 const TG = "https://t.me/Pausenearai_bot?startgroup=pause";
 
+const FAQ: [string, string][] = [
+  ["Do my friends need a crypto wallet?", "No. Start a pot on the website and list people by name with a phone number or email. Pause makes each of them an account and a private link to join and pay. People who already use NEAR can add their own account instead."],
+  ["What stops Pause running off with the money?", "The rules live in a contract on NEAR, not in the AI. Money leaves a pot only to a vendor that enough members approved, never above the approved amount, after a short wait anyone can stop. Pause's own key can do nothing else, and NEAR enforces that."],
+  ["What if someone slips in a scammer?", "Pause flags any account other Pause users reported. If three different users reported it, the contract refuses to pay it, even if the group approved."],
+  ["Which chat apps work?", "Telegram groups and the website today. WhatsApp is coming: bots can't join ordinary WhatsApp groups yet."],
+  ["Is this real money?", "Pause runs on NEAR testnet during the hackathon, so the money is test NEAR. Payouts in naira and other local currencies are planned."],
+  ["Is our chat private?", "Pause's answers come from private models on NEAR AI Cloud. Only the words of a search (like \"venue in Lekki for 60\") go to the search service. Pause doesn't store your group's conversations."],
+  ["What does it cost?", "Nothing while it's on testnet."],
+];
+
+
 export default function Home() {
   const passed = results.rows.filter((r) => r.ok).length;
   const ran = new Date(results.at).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -38,6 +49,46 @@ export default function Home() {
               <p className="lp-bubble member"><b>Ada</b>Who&apos;s collecting the money for the trip?</p>
               <p className="lp-bubble pause"><b>Pause</b>I&apos;ve got it. 5 of you, 2 NEAR each. Raised 8 of 10 so far.</p>
               <p className="lp-bubble pause"><b>Pause</b>Paid the villa deposit. The owner confirmed: &ldquo;See you Friday.&rdquo;</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The product, shown working: real screenshots */}
+      <section className="lp-bento-band" id="product">
+        <div className="wrap">
+          <div className="lp-bento-head">
+            <h2>Everything your group needs, in the chat you already use.</h2>
+            <p className="lede">Every picture below is Pause working for real: in a Telegram group, on the website, and on NEAR testnet.</p>
+          </div>
+          <div className="lp-bento">
+            <figure className="card bento-tile t-room">
+              <div className="bento-shot"><Image src="/img/product/room.jpg" alt="A group pot on the Pause website: chat feed, money raised, members who paid, and budget lines" fill sizes="(max-width: 900px) 92vw, 760px" /></div>
+              <figcaption><b>One pot, everyone can see it.</b> Who paid, what was approved, what was paid, and every receipt.</figcaption>
+            </figure>
+            <figure className="card bento-tile t-tg">
+              <div className="bento-shot tall"><Image src="/img/product/telegram.jpg" alt="Pause answering in a real Telegram group" fill sizes="(max-width: 900px) 92vw, 380px" /></div>
+              <figcaption><b>Lives in your Telegram group.</b> Ask it anything, the way you&apos;d ask a friend.</figcaption>
+            </figure>
+            <figure className="card bento-tile t-search">
+              <div className="bento-shot"><Image src="/img/product/search.jpg" alt="Pause listing event venues in Lekki with prices, links and photos" fill sizes="(max-width: 900px) 92vw, 560px" /></div>
+              <figcaption><b>Scouts venues live.</b> Real places, Google ratings, a budget and photos, anywhere in the world.</figcaption>
+            </figure>
+            <figure className="card bento-tile t-lang">
+              <div className="bento-shot"><Image src="/img/product/languages.jpg" alt="Pause answering a party-planning question in Yoruba" fill sizes="(max-width: 900px) 92vw, 560px" /></div>
+              <figcaption><b>Speaks your group&apos;s language.</b> English, French, Yoruba, Pidgin, Spanish and more.</figcaption>
+            </figure>
+            <div className="card bento-tile t-text">
+              <p className="bento-big">Pays in seconds.</p>
+              <p>When enough members approve, Pause pays the vendor and posts the receipt. A reported scammer is refused, even if approved.</p>
+            </div>
+            <div className="card bento-tile t-text">
+              <p className="bento-big">No wallet needed.</p>
+              <p>Invite people by name with a phone number or email. Each gets their own private link to join and pay.</p>
+            </div>
+            <div className="card bento-tile t-text">
+              <p className="bento-big">Can&apos;t run off.</p>
+              <p>NEAR limits Pause&apos;s keys to proposing and paying what members approved. Nothing else.</p>
             </div>
           </div>
         </div>
@@ -193,6 +244,32 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Questions people ask first */}
+      <section className="lp-faq-band">
+        <div className="wrap lp-faq-grid">
+          <h2>Questions people ask first.</h2>
+          <div className="lp-faq">
+            {FAQ.map(([q, a]) => (
+              <details key={q}>
+                <summary>{q}</summary>
+                <p>{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* The ask */}
+      <section className="night lp-final">
+        <div className="wrap lp-final-inner">
+          <h2>Your next group plan deserves a treasurer you can <span className="serif">trust</span>.</h2>
+          <p className="lede">Start a pot on the website in a minute, or add Pause to your Telegram group and just ask.</p>
+          <div className="hero-cta">
+            <Link className="btn primary lp-cta" href="/groups">Start a pot</Link>
+            <a className="btn ghost-night lp-cta" href={TG} target="_blank" rel="noreferrer">Add Pause to Telegram</a>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
