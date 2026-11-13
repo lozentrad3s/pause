@@ -76,16 +76,16 @@ async function serperSearch(query: string, key: string): Promise<Found | null> {
       body: JSON.stringify(body),
     }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
   const q = query.slice(0, 300);
-  const [web, pics] = await Promise.all([call("search", { q, num: 8 }), call("images", { q, num: 8 })]);
+  const [web, pics, maps] = await Promise.all([call("search", { q, num: 8 }), call("images", { q, num: 10 }), call("places", { q })]);
   if (!web) return null;
-  type Org = { title: string; link: string; snippet?: string; priceRange?: string; rating?: number; address?: string };
-  const places = ((web.places ?? []) as Org[]).slice(0, 3).map((p) => ({ title: String(p.title), url: String(p.link ?? `https://www.google.com/maps/search/${encodeURIComponent(p.title)}`), content: [p.address, p.rating ? `rated ${p.rating}` : "", p.priceRange].filter(Boolean).join(" · ") }));
+  type Org = { title: string; link?: string; website?: string; snippet?: string; priceRange?: string; priceLevel?: string; rating?: number; ratingCount?: number; address?: string; category?: string };
+  const places = ((maps?.places ?? web.places ?? []) as Org[]).slice(0, 5).map((p) => ({ title: String(p.title), url: String(p.website ?? p.link ?? `https://www.google.com/maps/search/${encodeURIComponent(`${p.title} ${p.address ?? ""}`)}`), content: [p.category, p.address, p.rating ? `Google rating ${p.rating}${p.ratingCount ? ` from ${p.ratingCount} reviews` : ""}` : "", p.priceRange ?? p.priceLevel].filter(Boolean).join(" · ") }));
   const organic = ((web.organic ?? []) as Org[]).slice(0, 6).map((o) => ({ title: String(o.title).slice(0, 120), url: String(o.link), content: String(o.snippet ?? "").slice(0, 600) }));
   const images = ((pics?.images ?? []) as { imageUrl: string; title?: string }[])
-    .filter((i) => /^https:\/\/.+\.(jpe?g|png|webp)(\?|$)/i.test(i.imageUrl))
+    .filter((i) => /^https:\/\//.test(i.imageUrl) && !/\.(svg|gif)(\?|$)/i.test(i.imageUrl) && !/lookaside|fbsbx|instagram\.f|logo/i.test(i.imageUrl))
     .slice(0, 4)
     .map((i) => ({ url: i.imageUrl, description: i.title }));
-  return { results: [...places, ...organic].slice(0, 8), images };
+  return { results: [...places, ...organic].slice(0, 10), images };
 }
 
 /** Live web search with pictures: Serper if its key is set, else Tavily. Nothing if neither. */
@@ -141,7 +141,7 @@ export async function pauseAnswer(history: Turn[], opts: ReplyOpts = {}): Promis
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       signal: ctrl.signal,
-      body: JSON.stringify({ model: opts.model ?? process.env.NEARAI_MODEL ?? "deepseek-ai/DeepSeek-V4.1-Flash-1017", temperature: 0.5, max_tokens: 3000, messages }),
+      body: JSON.stringify({ model: opts.model ?? process.env.NEARAI_MODEL ?? "deepseek-ai/DeepSeek-V4.1-Flash-1017", temperature: 0.5, max_tokens: 7000, messages }),
     });
     clearTimeout(timer);
     const data = await res.json();
