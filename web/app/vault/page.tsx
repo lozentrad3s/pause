@@ -191,7 +191,7 @@ function SendForm({ vault, onSend, busy, readOnly, onConnect }: { vault: Vault; 
       <h3 className="send-title">Send money</h3>
       <label>To<input required={!readOnly} placeholder="name.testnet" value={receiver} onChange={(e) => setReceiver(e.target.value.toLowerCase())} /></label>
       <label>Amount (NEAR)<input required={!readOnly} inputMode="decimal" placeholder="0.5" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
-      <label>What is it for? <span className="muted">(optional)</span><input maxLength={140} placeholder="Rent, groceries…" value={memo} onChange={(e) => setMemo(e.target.value)} /></label>
+      <label><span>What is it for? <span className="muted">(optional)</span></span><input maxLength={140} placeholder="Rent, groceries…" value={memo} onChange={(e) => setMemo(e.target.value)} /></label>
       {hint && <p className="send-hint">{hint}</p>}
       <button className="btn primary" disabled={busy}>{readOnly ? "Connect a wallet to send" : busy ? "Sending…" : "Send"}</button>
     </form>

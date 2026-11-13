@@ -162,3 +162,14 @@
 
 /* Held payments: status shows in the badge and the countdown bar, not a thick side stripe. */
 .hold, .hold.st-Pending, .hold.st-Pending.rk-High, .hold.st-Released { border-left: 1px solid var(--line) !important; }
+
+/* Smaller logo button */
+.chat-fab { padding: 4px; border-radius: 15px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
+.chat-fab img { width: 38px; height: 38px; border-radius: 11px; }
+.chat-fab.is-tucked { transform: translateX(calc(100% - 18px)) rotate(-8deg); }
+.chat-fab:hover .chat-fab-label, .chat-fab:focus-visible .chat-fab-label { padding: 0 10px 0 8px; font-size: 0.875rem; }
+@media (max-width: 640px) { .chat-fab img { width: 36px; height: 36px; } }
+.send-card label .muted { display: inline; font-weight: 400; }
+
+.link-card { padding: 26px; display: grid; gap: 14px; justify-items: start; margin-top: 8px; }
+.link-card p, .link-card h2 { margin: 0; }

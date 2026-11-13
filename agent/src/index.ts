@@ -8,6 +8,7 @@ import { isLang, LANGS, QUESTIONS, type Lang } from "../../web/lib/i18n";
 import { assertScopedKey, CONTRACT, getHolds, getVault, setRisk, yoctoToNear, type Hold } from "./near";
 import { store } from "./store";
 import { chatWithPause, registerGroups, tickGroups } from "./groups";
+import { newLinkCode, startHttp } from "./http";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not set");
@@ -124,16 +125,15 @@ bot.command("start", (ctx) =>
   ),
 );
 
+// Linking proves ownership: the account signs a one-time code on the website.
 bot.command("link", async (ctx) => {
-  const account = ctx.match.trim().toLowerCase();
-  if (!/^[a-z0-9_.-]+\.(testnet|near)$/.test(account)) return ctx.reply("Send it like this: /link amina.pause-demo.testnet");
-  store.link(ctx.chat.id, account);
-  const vault = await getVault(account).catch(() => null);
-  const isGuardianSomewhere = !vault;
+  if (ctx.chat.type !== "private") return ctx.reply("Link your account in a private chat with me, so your code stays yours.");
+  const code = newLinkCode(ctx.chat.id);
+  const url = `${WEB}/link?code=${code}`;
+  const localhost = /localhost|127\.0\.0\.1/.test(WEB);
   await ctx.reply(
-    vault
-      ? `✅ Linked to ${account}. I'll message you here when a payment from your vault is held.`
-      : `✅ Linked to ${account}. ${isGuardianSomewhere ? "If you're someone's guardian, I'll alert you here when their payment looks risky." : ""}`,
+    `🔐 To connect your NEAR account, open this page and approve with your wallet. It proves the account is yours and costs nothing.\n\nYour code: <b>${code}</b> (valid 15 minutes)${localhost ? `\n${url}` : ""}`,
+    { parse_mode: "HTML", ...(localhost ? {} : { reply_markup: { inline_keyboard: [[{ text: "Connect my account", url }]] } }) },
   );
 });
 
@@ -391,6 +391,13 @@ await bot.api.setMyCommands([
 ]);
 // Refuse to run with a key that could do more than record a verdict.
 await assertScopedKey();
+startHttp(async (chatId, accountId) => {
+  store.link(chatId, accountId);
+  const vault = await getVault(accountId).catch(() => null);
+  await send(chatId, vault
+    ? `✅ Linked to <b>${esc(accountId)}</b>. I'll message you here when a payment from your vault is held, and remind you about any group pot you're in.`
+    : `✅ Linked to <b>${esc(accountId)}</b>. I'll tell you about group pots you're in, and alert you if someone you guard sends a risky payment.`);
+});
 const me = await bot.api.getMe();
 console.log(`Pause agent @${me.username} watching ${CONTRACT}`);
 bot.start();

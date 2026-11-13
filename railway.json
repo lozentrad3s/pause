@@ -1,0 +1,13 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "npm ci --ignore-scripts && npm --prefix web ci --ignore-scripts --no-audit --no-fund && npm --prefix agent ci --no-audit --no-fund"
+  },
+  "deploy": {
+    "startCommand": "npm --prefix agent run start",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 120,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

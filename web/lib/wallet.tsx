@@ -19,6 +19,8 @@ interface WalletCtx {
   signOut: () => Promise<void>;
   /** Signs a call to the Pause contract. Deposit and gas are in yocto / gas units. */
   call: (method: string, args?: object, deposit?: string, gas?: string) => Promise<TxResult>;
+  /** NEP-413: the wallet signs a message off-chain, proving it controls the account. */
+  signMessage: (message: string, recipient: string, nonce: Uint8Array) => Promise<{ accountId: string; publicKey: string; signature: string }>;
 }
 
 const Ctx = createContext<WalletCtx | null>(null);
@@ -72,7 +74,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return { hash: (outcome as { transaction?: { hash?: string } })?.transaction?.hash ?? null };
   }, []);
 
-  return <Ctx.Provider value={{ ready, accountId, signIn, signOut, call }}>{children}</Ctx.Provider>;
+  const signMessage = useCallback(async (message: string, recipient: string, nonce: Uint8Array) => {
+    if (!connector.current) throw new Error("The wallet is still loading. Try again in a moment.");
+    const wallet = await connector.current.wallet();
+    return wallet.signMessage({ message, recipient, nonce });
+  }, []);
+
+  return <Ctx.Provider value={{ ready, accountId, signIn, signOut, call, signMessage }}>{children}</Ctx.Provider>;
 }
 
 export function useWallet() {
