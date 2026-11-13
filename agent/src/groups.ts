@@ -239,7 +239,7 @@ export function registerGroups(b: Bot) {
   });
 
   b.command("newpot", (ctx) => {
-    const url = `${WEB}/groups/new?chat=${ctx.chat.id}`;
+    const url = `${WEB}/groups?chat=${ctx.chat.id}`;
     const btn = buttons([["Create the pot", url]]);
     return ctx.reply(
       `Let's set up the pot. On the page you'll choose a name, the goal, each person's share, the members and how many must approve each payment. Then send <code>/connect &lt;pot number&gt;</code> here.${btn.text}`,
