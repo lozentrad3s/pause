@@ -128,7 +128,8 @@ npm run judge
 
 1. **Scam scripts.** 13 real scripts from different countries (fake bank call, "Hi Mum", tax office warrant, parcel text, paid tasks, pig butchering, meme-coin presale, wallet drainer, giveaway…) and 5 genuine messages go through the fixed rules. Every scam must reach its expected level; no genuine message may be flagged.
 2. **Contract.** `cargo test` runs 69 unit tests (28 of them for group pots) and the ten scenarios S1–S10 against the real contract code. Without Rust this group is skipped and the run says so.
-3. **Live testnet, read-only.** The deployed contract answers, the graded registry is live, and the agent's key on chain is limited to `set_risk` and `extend_hold`. `OFFLINE=1 npm run judge` skips this group.
+3. **Live testnet, read-only.** The deployed contract answers, the graded registry is live, and the agent's key on chain is limited to `set_risk` and `extend_hold`, with no full-access key on the account.
+4. **Pause Groups, read-only.** The treasurer's key is limited to `propose_line` and `pay_line` with no full-access key, group pots are readable, the demo scam vendor is hard-blocked, and the last live G1–G12 run (`npm run groups:live`) passed 12 of 12. `OFFLINE=1 npm run judge` skips groups 3 and 4.
 
 Then open the site:
 
@@ -145,6 +146,8 @@ Open http://localhost:3000.
 3. **http://localhost:3000/registry** → the protection map, read live from the contract: reports, warned receivers, blocked receivers.
 4. **http://localhost:3000/status** → every dependency checked live, including what the agent's key is allowed to call.
 5. **http://localhost:3000/vault?view=amina.pause-demo.testnet** → a real testnet vault, read-only.
+6. **http://localhost:3000/groups/0** → a real group pot, read live from the contract: the chat feed of every contribution, vote and payment, the members with paid ticks, and the budget lines, including the hall paid in two parts and the drinks vendor refused as a reported scammer. That pot was then cancelled by a vote, and the unspent money was refunded to the yoctoNEAR.
+7. Without keys the **Start the reunion pot** button explains that guest accounts aren't switched on, and Ask Pause gives short fixed answers. The full reunion demo and the AI run on the live site, or locally after filling `.env` (see Run everything yourself).
 
 ## The live demo: two phones, real transactions
 
