@@ -193,18 +193,6 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="footer lp-footer">
-        <div className="wrap footer-grid">
-          <div>
-            <p><b>Pause</b>, the AI agent that plans, secures and pays for you. Built at NEAR HACKATHON on NEAR and NEAR AI Cloud.</p>
-            <p className="muted small">Coming soon: ask Pause by tagging it on X, WhatsApp groups, and paying vendors in naira and other local currencies. Testnet only for now.</p>
-          </div>
-          <div className="hero-cta" style={{ marginTop: 0 }}>
-            <Link className="btn small-btn" href="/status">Status</Link>
-            <a className="btn small-btn" href="https://github.com/lozentrad3s/pause">GitHub</a>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }

@@ -11,6 +11,7 @@ import { LangProvider } from "@/lib/lang";
 import { WalletProvider } from "@/lib/wallet";
 import AppHeader from "@/components/AppHeader";
 import ChatWidget from "@/components/ChatWidget";
+import SiteFooter from "@/components/SiteFooter";
 
 const body = Inter({ subsets: ["latin"], variable: "--font-body" });
 const serif = Fraunces({ subsets: ["latin"], variable: "--font-serif", style: ["normal", "italic"] });
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <WalletProvider>
             <AppHeader />
             {children}
+          <SiteFooter />
           <ChatWidget />
           </WalletProvider>
         </LangProvider>

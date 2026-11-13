@@ -107,10 +107,6 @@
 }
 
 /* Ask Pause: floating chat on every page */
-.chat-fab { position: fixed; right: 20px; bottom: 20px; z-index: 80; display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 20px; border-radius: 999px; border: 0; background: var(--accent); color: #fff; font-weight: 600; font-size: 0.9375rem; cursor: pointer; box-shadow: 0 12px 30px -10px rgba(79, 43, 224, 0.6); transition: transform 0.15s var(--ease-out); }
-.chat-fab:active { transform: scale(0.96); }
-.chat-fab.is-open { background: var(--night); }
-.chat-fab-dot { width: 8px; height: 8px; border-radius: 50%; background: #5ef0a6; box-shadow: 0 0 0 3px rgba(94, 240, 166, 0.25); }
 .chat-panel { position: fixed; right: 20px; bottom: 84px; z-index: 80; width: min(400px, calc(100vw - 40px)); height: min(620px, calc(100vh - 120px)); display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 30px 70px -20px rgba(14, 9, 28, 0.45); overflow: hidden; animation: pop 0.2s var(--ease-out); }
 .chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
 .chat-head > div { display: flex; flex-direction: column; line-height: 1.25; flex: 1; min-width: 0; }
@@ -121,8 +117,48 @@
 .chat-form input { flex: 1; font-size: 16px; }
 
 @media (max-width: 640px) {
-  .chat-fab { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
-  .chat-panel { inset: 0; width: 100%; height: 100%; border-radius: 0; bottom: 0; right: 0; }
-  .chat-panel ~ .chat-fab, .chat-fab.is-open { display: none; }
-  .composer input, .room input { font-size: 16px; }
+    .chat-panel { inset: 0; width: 100%; height: 100%; border-radius: 0; bottom: 0; right: 0; }
+  .chat-panel ~   .composer input, .room input { font-size: 16px; }
 }
+
+/* Ask Pause: the logo, docked at the right edge */
+.chat-fab {
+  position: fixed; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 80;
+  display: inline-flex; align-items: center; gap: 0; padding: 6px; border: 0; cursor: pointer;
+  border-radius: 22px; background: #fff; color: var(--ink);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 -6px 14px -6px rgba(79, 43, 224, 0.18) inset, 0 18px 36px -16px rgba(26, 14, 90, 0.5), 0 2px 6px rgba(13, 11, 38, 0.08);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, box-shadow 0.2s ease;
+}
+.chat-fab img { width: 52px; height: 52px; border-radius: 16px; display: block; }
+.chat-fab-label { max-width: 0; overflow: hidden; white-space: nowrap; font-weight: 600; font-size: 0.9375rem; transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.chat-fab:hover .chat-fab-label, .chat-fab:focus-visible .chat-fab-label { max-width: 120px; padding: 0 12px 0 10px; }
+.chat-fab:active { transform: scale(0.95); }
+.chat-fab.is-tucked { transform: translateX(calc(100% - 26px)) rotate(-8deg); }
+.chat-fab.is-folded { transform: translateX(140%) rotate(-20deg); opacity: 0; pointer-events: none; }
+.chat-fab:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.chat-logo { border-radius: 11px; flex: none; }
+.fbubble.typing, .pbubble.typing { color: var(--muted); font-style: italic; font-size: 0.875rem; }
+@media (prefers-reduced-motion: reduce) { .chat-fab, .chat-fab-label { transition: none; } }
+@media (max-width: 640px) { .chat-fab { right: 12px; } .chat-fab img { width: 48px; height: 48px; } }
+
+/* Words instead of dots */
+.balance-label { margin: 0; font-size: 0.9375rem; color: var(--night-muted); }
+.send-title, .insight-title { margin: 0 0 4px; font-size: 1.125rem; }
+.status-word { flex: none; font-size: 0.8125rem; font-weight: 600; padding: 3px 9px; border-radius: 8px; background: var(--ok-bg); color: var(--ok); align-self: flex-start; }
+.no .status-word { background: var(--bad-bg); color: var(--bad); }
+.tab-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: 7px; background: var(--bad-solid); color: #fff; font-size: 0.75rem; font-weight: 700; }
+
+/* Site footer */
+.site-footer { background: var(--night); color: var(--night-text); padding: 64px 0 40px; margin-top: 0; }
+.site-footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 40px; }
+.site-footer h3 { font-size: 0.9375rem; margin: 0 0 14px; color: var(--night-text); }
+.site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.site-footer a { color: var(--night-muted); text-decoration: none; }
+.site-footer a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.site-footer-brand p { color: var(--night-muted); max-width: 30rem; margin: 12px 0 0; line-height: 1.6; }
+.site-footer-brand .logo { color: var(--night-text); }
+.site-footer-base { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--night-line); color: var(--night-muted); font-size: 0.875rem; }
+@media (max-width: 860px) { .site-footer-grid { grid-template-columns: 1fr 1fr; } .site-footer-brand { grid-column: 1 / -1; } }
+
+/* Held payments: status shows in the badge and the countdown bar, not a thick side stripe. */
+.hold, .hold.st-Pending, .hold.st-Pending.rk-High, .hold.st-Released { border-left: 1px solid var(--line) !important; }

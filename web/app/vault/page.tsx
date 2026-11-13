@@ -104,7 +104,7 @@ function VaultInner() {
 
       <section className="vault-head">
         <div className="balance-card">
-          <p className="eyebrow">Vault balance</p>
+          <p className="balance-label">Balance</p>
           <div className="balance">{fromYocto(vault.balance)} <span>NEAR</span></div>
           <div className="balance-meta">
             <span>Instant up to <b>{fromYocto(vault.instant_limit)} NEAR</b></span>
@@ -188,7 +188,7 @@ function SendForm({ vault, onSend, busy, readOnly, onConnect }: { vault: Vault; 
   }
   return (
     <form className="send-card" onSubmit={(e) => { e.preventDefault(); if (readOnly) onConnect(); else onSend(receiver.trim(), amount, memo); }}>
-      <p className="eyebrow">Send money</p>
+      <h3 className="send-title">Send money</h3>
       <label>To<input required={!readOnly} placeholder="name.testnet" value={receiver} onChange={(e) => setReceiver(e.target.value.toLowerCase())} /></label>
       <label>Amount (NEAR)<input required={!readOnly} inputMode="decimal" placeholder="0.5" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
       <label>What is it for? <span className="muted">(optional)</span><input maxLength={140} placeholder="Rent, groceries…" value={memo} onChange={(e) => setMemo(e.target.value)} /></label>

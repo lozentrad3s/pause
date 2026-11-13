@@ -168,9 +168,7 @@ export default function PhoneDemo({ variant = "full" }: { variant?: "full" | "he
                     </div>
                   ))}
                   {typing && (
-                    <div className="pbubble them typing-dots" aria-label="typing">
-                      <i /><i /><i />
-                    </div>
+                    <div className="pbubble them typing">typing…</div>
                   )}
                 </div>
                 <div className="pinput">Message</div>
@@ -234,7 +232,7 @@ export default function PhoneDemo({ variant = "full" }: { variant?: "full" | "he
 
         {/* ------------------------------------------ what Pause sees */}
         {!hero && <div className="insight" aria-live="polite">
-          <p className="eyebrow">What Pause sees</p>
+          <h3 className="insight-title">What Pause sees</h3>
           <div className="meter">
             <div className="meter-top">
               <b style={{ color: LEVEL_COLOR[rules.level] }}>{rules.level === "Safe" ? "No warning signs" : `${rules.level} risk`}</b>
@@ -270,7 +268,7 @@ export default function PhoneDemo({ variant = "full" }: { variant?: "full" | "he
 
           {story.scam && has("sheet") && (
             <div className="autopause">
-              <p className="eyebrow">Automatic pause</p>
+              <h4 className="insight-title">Automatic pause</h4>
               <ol>
                 <li className="done">Warned Grace privately, before any money moved</li>
                 <li className={onWallet ? "done" : ""}>Pre-flagged <code>{story.payment!.to}</code> found in the chat</li>

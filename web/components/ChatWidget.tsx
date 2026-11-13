@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 interface M { role: "user" | "assistant"; content: string }
@@ -21,6 +22,18 @@ export default function ChatWidget() {
   const [busy, setBusy] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const pot = path?.startsWith("/groups/") ? Number(path.split("/")[2]) : null;
+  // The logo button tucks half into the edge while you scroll, so it never covers content.
+  const [tucked, setTucked] = useState(false);
+  useEffect(() => {
+    let timer: number | undefined;
+    const onScroll = () => {
+      setTucked(true);
+      clearTimeout(timer);
+      timer = window.setTimeout(() => setTucked(false), 1400);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); clearTimeout(timer); };
+  }, []);
 
   useEffect(() => {
     try {
@@ -66,13 +79,21 @@ export default function ChatWidget() {
 
   return (
     <>
-      <button className={`chat-fab ${open ? "is-open" : ""}`} onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="pause-chat">
-        {open ? "Close" : <><span className="chat-fab-dot" aria-hidden /> Ask Pause</>}
+      <button
+        className={`chat-fab ${open ? "is-folded" : tucked ? "is-tucked" : ""}`}
+        onClick={() => { setTucked(false); setOpen(true); }}
+        aria-expanded={open}
+        aria-controls="pause-chat"
+        aria-label="Ask Pause"
+        tabIndex={open ? -1 : 0}
+      >
+        <Image src="/img/logo-mark.png" alt="" width={64} height={64} priority />
+        <span className="chat-fab-label">Ask Pause</span>
       </button>
       {open && (
         <section id="pause-chat" className="chat-panel" role="dialog" aria-label="Chat with Pause">
           <header className="chat-head">
-            <span className="feed-avatar" aria-hidden>P</span>
+            <Image className="chat-logo" src="/img/logo-mark.png" alt="" width={36} height={36} />
             <div>
               <b>Pause</b>
               <span className="muted small">Plans, saves, pays and protects{pot !== null && Number.isFinite(pot) ? ` · knows pot #${pot}` : ""}</span>
@@ -93,7 +114,7 @@ export default function ChatWidget() {
                 <div className="fbubble" dangerouslySetInnerHTML={{ __html: render(m.content) }} />
               </div>
             ))}
-            {busy && <div className="fmsg bot"><div className="fbubble typing-dots"><i /><i /><i /></div></div>}
+            {busy && <div className="fmsg bot"><div className="fbubble typing">Pause is typing…</div></div>}
           </div>
           <form className="chat-form" onSubmit={(e) => { e.preventDefault(); send(text); }}>
             <input aria-label="Message Pause" placeholder="Message Pause…" value={text} onChange={(e) => setText(e.target.value)} enterKeyHint="send" />

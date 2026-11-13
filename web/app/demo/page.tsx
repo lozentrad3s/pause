@@ -405,7 +405,7 @@ export default function DemoPage() {
       <div className="dtabs" role="tablist">
         <button role="tab" aria-selected={tab === "owner"} className={tab === "owner" ? "on" : ""} onClick={() => setTab("owner")}>Grace</button>
         <button role="tab" aria-selected={tab === "guardian"} className={tab === "guardian" ? "on" : ""} onClick={() => setTab("guardian")}>
-          Her son{pending.length > 0 && <span className="dot" aria-label={`${pending.length} waiting`} />}
+          Her son{pending.length > 0 && <span className="tab-count">{pending.length}</span>}
         </button>
       </div>
       <div className={`dphones show-${tab}`}>

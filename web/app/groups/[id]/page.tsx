@@ -249,9 +249,8 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
 
       <header className="room-head">
         <div>
-          <p className="eyebrow">Pot #{pot.id} · {pot.status}</p>
           <h1>{pot.name}</h1>
-          <p className="muted">{pot.approvals_needed} of {pot.members.length} must approve each payment · {Math.round(pot.hold_secs / 60)} min to object · treasurer <code>{short(pot.agent)}</code></p>
+          <p className="muted">{({ Raising: "Collecting money", Spending: "Paying vendors", Closed: "Finished", Cancelled: "Cancelled" } as Record<string, string>)[pot.status]} · {pot.approvals_needed} of {pot.members.length} must approve each payment · {Math.round(pot.hold_secs / 60)} min to object · treasurer <code>{short(pot.agent)}</code></p>
         </div>
         <div className="seg room-tabs" role="tablist">
           <button className={tab === "chat" ? "on" : ""} onClick={() => setTab("chat")}>Chat</button>
@@ -273,7 +272,7 @@ export default function GroupRoom({ params }: { params: Promise<{ id: string }> 
                 </div>
               </div>
             ))}
-            {busy && <div className="fmsg bot"><div className="fbubble typing-dots"><i /><i /><i /></div></div>}
+            {busy && <div className="fmsg bot"><div className="fbubble typing">Pause is typing…</div></div>}
           </div>
           {open && (
             <div className="composer">

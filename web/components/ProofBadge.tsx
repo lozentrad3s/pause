@@ -29,7 +29,7 @@ export default function ProofBadge({ analysis }: { analysis: Pick<Analysis, "sou
   if (analysis.source !== "ai" || !p) {
     return (
       <div className="proof proof-rules">
-        <span className="proof-dot" aria-hidden />
+        
         <span>
           <b>Checked with fixed rules.</b> No AI key is set on this server, so no model was used and there is no TEE proof to show.
         </span>
@@ -40,7 +40,7 @@ export default function ProofBadge({ analysis }: { analysis: Pick<Analysis, "sou
   return (
     <div className={`proof ${p.verified ? "proof-ok" : "proof-warn"}`}>
       <button className="proof-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className="proof-dot" aria-hidden />
+        
         <span>
           <b>{p.verified ? "Checked privately" : "Checked on NEAR AI Cloud"}</b>
           <span className="proof-sub">{p.verified ? "TEE signature verified" : "signature not fully verified"} · {p.model.split("/").pop()}</span>

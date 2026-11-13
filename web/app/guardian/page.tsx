@@ -90,7 +90,6 @@ function GuardianInner() {
       )}
       <section className="guardian-head">
         <div>
-          <p className="eyebrow">Guardian</p>
           <h1>{urgent.length ? `${urgent.length} payment${urgent.length > 1 ? "s" : ""} need${urgent.length > 1 ? "" : "s"} you` : "All quiet"}</h1>
           <p className="lede">
             {wards === undefined ? "Loading…" : wards.length ? <>You protect <b>{wards.join(", ")}</b>.</> : "Nobody has named you as a guardian yet."}

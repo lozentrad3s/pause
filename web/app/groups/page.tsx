@@ -75,7 +75,6 @@ function Groups() {
   return (
     <main id="main" className="wrap app-page groups-start">
       <section className="groups-hero">
-        <p className="eyebrow">Pause Groups</p>
         <h1>A treasurer that never gets tired and can&apos;t run off.</h1>
         <p className="lede">
           Add Pause to your Telegram group. Everyone pays into a pot on NEAR, the group votes on each vendor, and the AI agent pays only

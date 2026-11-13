@@ -41,7 +41,7 @@ export default function StatusPage() {
           <ul className="status-list">
             {status.checks.map((c) => (
               <li key={c.id} className={c.ok ? "ok" : "no"}>
-                <span className="status-dot" aria-hidden />
+                <span className="status-word">{c.ok ? "Working" : "Needs attention"}</span>
                 <div>
                   <b>{c.label}</b>
                   <span>{c.detail}</span>

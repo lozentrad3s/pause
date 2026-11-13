@@ -53,8 +53,7 @@ export default function AppHeader() {
         </label>
         {accountId ? (
           <button className="acct" onClick={signOut} title="Sign out">
-            <span className="acct-dot" aria-hidden />
-            <span className="acct-id">{accountId}</span>
+                        <span className="acct-id">{accountId}</span>
           </button>
         ) : (
           <button className="btn small-btn on-night" onClick={signIn} disabled={!ready}>
